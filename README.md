@@ -1,5 +1,10 @@
 # FormPopulator
 
+[![Tests](https://github.com/your-username/form-populator/actions/workflows/release.yml/badge.svg)](https://github.com/your-username/form-populator/actions/workflows/release.yml)
+[![npm version](https://badge.fury.io/js/form-populator.svg)](https://badge.fury.io/js/form-populator)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Zero Dependencies](https://img.shields.io/badge/dependencies-0-green.svg)](package.json)
+
 **Lightweight vanilla JS utility to instantly sync API data (or any object) into forms and DOM elements.** One call populates inputs, checkboxes, radios, selects (native/TomSelect/Selectize/Chosen/AutoNumeric), content, lists, and attributes. Extract values back just as easily. Zero dependencies, no frameworks, full control.
 
 ## Features
