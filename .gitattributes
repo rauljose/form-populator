@@ -1,0 +1,9 @@
+# Mark test files and HTML files as documentation/vendored to exclude from language stats
+tests/** linguist-documentation
+*.html linguist-documentation
+
+# Alternatively, if you want to explicitly mark JavaScript files: 
+*.js linguist-language=JavaScript
+
+# Or mark specific test directories as vendored:
+# tests/** linguist-vendored
