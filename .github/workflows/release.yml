@@ -1,0 +1,101 @@
+name: Release & Publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on tags like v1.2.1, v2.0.0
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    # Needed to push built files back
+      packages: write    # For GitHub Packages if ever used
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for tagging
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build minified files
+        run: npm run build
+
+      - name: Commit built files to tag (if changed)
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add dist/*
+          git commit -m "chore: build dist for release ${{ github.ref_name }}" || echo "No changes in dist"
+          git push origin HEAD:${{ github.ref_name }} || echo "Nothing to push"
+
+      - name: Install Puppeteer
+        run: npm install --save-dev puppeteer
+
+      - name: Run QUnit tests headlessly
+        run: |
+          npx puppeteer browsers install chrome
+          node -e "
+            const puppeteer = require('puppeteer');
+            (async () => {
+              const browser = await puppeteer.launch({
+                headless: 'new',
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+              });
+              const page = await browser.newPage();
+
+              // Speed up by blocking unnecessary resources
+              await page.setRequestInterception(true);
+              page.on('request', (req) => {
+                if (['stylesheet', 'font', 'image'].includes(req.resourceType())) {
+                  req.abort();
+                } else {
+                  req.continue();
+                }
+              });
+
+              await page.goto('file://${process.cwd()}/tests/FormPopulator_tests.html', {
+                waitUntil: 'networkidle0',
+                timeout: 60000
+              });
+
+              // Wait for QUnit to complete
+              await page.waitForSelector('#qunit-testresult .total', { timeout: 60000 });
+
+              const result = await page.evaluate(() => {
+                const passedEl = document.querySelector('#qunit-tests > .passed');
+                const failedEl = document.querySelector('#qunit-tests > .failed');
+                const totalEl = document.querySelector('#qunit-tests > .total');
+                const failedDetails = Array.from(document.querySelectorAll('#qunit-tests .fail'))
+                  .map(el => el.textContent.trim());
+
+                return {
+                  passed: passedEl ? parseInt(passedEl.textContent) : 0,
+                  failed: failedEl ? parseInt(failedEl.textContent) : 0,
+                  total: totalEl ? parseInt(totalEl.textContent) : 0,
+                  failedDetails
+                };
+              });
+
+              await browser.close();
+
+              console.log(\`QUnit: \${result.passed}/\${result.total} passed, \${result.failed} failed\`);
+
+              if (result.failed > 0) {
+                console.error('Failed tests:', result.failedDetails.join('\\n'));
+                process.exit(1);
+              }
+
+              console.log('All tests passed!');
+            })();
+          "
+
