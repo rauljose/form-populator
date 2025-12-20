@@ -7,8 +7,8 @@
 - **One-call population** — Pass a container and data object, done
 - **Bidirectional** — `populate()` to fill, `getValuesByKey()` to extract
 - **All form elements** — text, email, tel, number, date, checkbox, radio, select, textarea, file (readonly)
-- **Enhanced selects** — TomSelect, Selectize, Chosen auto-detected and handled
-- **AutoNumeric** — Formatted currency/number inputs populated and extracted correctly
+- **Enhanced selects** — Optional: TomSelect, Selectize, Chosen auto-detected and handled
+- **AutoNumeric** — Optional: Formatted currency/number inputs populated and extracted correctly
 - **DOM elements** — span, div, p, h1-h6, ul, ol (including nested lists), img, video, audio, iframe, a
 - **Attributes** — Set any attribute (including data-*) alongside values
 - **XSS-safe** — HTML sanitized by default (textContent), opt-in for innerHTML
@@ -17,18 +17,6 @@
 - **Zero dependencies** — Pure vanilla JavaScript, works everywhere
 
 ## Installation
-
-### npm
-
-```bash
-npm install form-populator
-```
-
-### CDN
-
-```html
-<script src="https://unpkg.com/form-populator/dist/form-populator.min.js"></script>
-```
 
 ### Manual
 
