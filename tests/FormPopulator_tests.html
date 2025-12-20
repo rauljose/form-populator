@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FormPopulator QUnit Tests 1.2.0</title>
+
+    <!-- jQuery (required for Selectize and Chosen) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.24.1.css">
+    <script src="https://code.jquery.com/qunit/qunit-2.24.1.js"></script>
+
+    <!-- TomSelect -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
+
+    <!-- Selectize -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css"
+          rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js"></script>
+
+    <!-- Chosen -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.jquery.min.js"></script>
+
+    <!-- AutoNumeric -->
+    <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
+
+    <script src="../src/FormPopulator.js"></script>
+</head>
+<body>
+<div id="qunit"></div>
+<div id="qunit-fixture">
+    <div id="test-container">
+        <input type="text" id="textInput" name="textInput"/>
+        <input type="text" name="nameOnlyText"/>
+        <input type="text" id="idOnlyText"/>
+        <input type="password" id="passwordInput" name="passwordInput"/>
+        <input type="email" id="emailInput" name="emailInput"/>
+        <input type="url" id="urlInput" name="urlInput"/>
+        <input type="tel" id="telInput" name="telInput"/>
+        <input type="search" id="searchInput" name="searchInput"/>
+        <input type="hidden" id="hiddenInput" name="hiddenInput"/>
+        <input type="number" id="numberInput" name="numberInput"/>
+        <input type="range" id="rangeInput" name="rangeInput" min="0" max="100"/>
+        <input type="date" id="dateInput" name="dateInput"/>
+        <input type="time" id="timeInput" name="timeInput"/>
+        <input type="datetime-local" id="datetimeInput" name="datetimeInput"/>
+        <input type="month" id="monthInput" name="monthInput"/>
+        <input type="week" id="weekInput" name="weekInput"/>
+        <input type="checkbox" id="singleCheckbox" name="singleCheckbox" value="yes"/>
+        <input type="checkbox" id="initiallyChecked" name="initiallyChecked" value="yes" checked="checked"/>
+        <input type="checkbox" name="nameOnlyCheckbox" value="yes"/>
+        <input type="checkbox" name="checkboxGroup" value="option1"/>
+        <input type="checkbox" name="checkboxGroup" value="option2"/>
+        <input type="checkbox" name="checkboxGroup" value="option3" checked="checked"/>
+        <input type="radio" name="radioGroup1" value="radio1"/>
+        <input type="radio" name="radioGroup1" value="radio2"/>
+        <input type="radio" name="radioGroup1" value="radio3"/>
+        <input type="radio" name="radioGroup2" value="groupB1"/>
+        <input type="radio" name="radioGroup2" value="groupB2"/>
+        <input type="radio" id="singleRadio" name="singleRadio" value="yes"/>
+        <input type="file" id="fileInput" name="fileInput"/>
+        <input type="color" id="colorInput" name="colorInput"/>
+        <textarea id="textareaField" name="textareaField" rows="4" cols="50"></textarea>
+        <select id="singleSelect" name="singleSelect">
+            <option value="">Choose...</option>
+            <option value="option1">Option 1</option>
+            <option value="option2">Option 2</option>
+            <option value="option3">Option 3</option>
+        </select>
+        <select id="multipleSelect" name="multipleSelect" multiple>
+            <option value="multi1">Multiple 1</option>
+            <option value="multi2">Multiple 2</option>
+            <option value="multi3">Multiple 3</option>
+            <option value="multi4">Multiple 4</option>
+        </select>
+        <span id="spanElement" name="spanElement">Initial span content</span>
+        <div id="divElement" name="divElement">Initial div content</div>
+        <p id="paragraphElement" name="paragraphElement">Initial paragraph content</p>
+        <h1 id="headingElement" name="headingElement">Initial heading</h1>
+        <ul id="unorderedList" name="unorderedList">
+            <li>Initial item 1</li>
+            <li>Initial item 2</li>
+        </ul>
+        <ol id="orderedList" name="orderedList">
+            <li>Initial ordered item 1</li>
+            <li>Initial ordered item 2</li>
+        </ol>
+        <div id="attributeTest" name="attributeTest" data-original="value" data-replace="was"></div>
+        <div id="conflictKey">Conflict div</div>
+        <input type="radio" name="conflictKey" value="conflictRadio1"/>
+        <input type="radio" name="conflictKey" value="conflictRadio2"/>
+    </div>
+</div>
+
+<script>
+    function spyOnConsole() {
+        const logs = [];
+        const originalLog = console.log;
+        console.log = function(...args) {
+            logs.push(args);
+            originalLog.apply(console, args);
+        };
+        return {
+            logs,
+            restore: () => {
+                console.log = originalLog;
+            }
+        };
+    }
+
+    QUnit.module('FormPopulator Tests', function(hooks) {
+        let container;
+
+        hooks.beforeEach(function() {
+            container = document.getElementById('test-container');
+        });
+
+        QUnit.test('Container validation', function(assert) {
+            assert.throws(() => FormPopulator.populate(null, {}), /Container must be a valid DOM element/);
+            assert.throws(() => FormPopulator.populate("not-a-dom-element", {}), /Container must be a valid DOM element/);
+            assert.throws(() => FormPopulator.populate(container, null), /Data must be a non-null object/);
+        });
+
+        QUnit.test('Lookup priority: name over id', function(assert) {
+            FormPopulator.populate(container, {nameOnlyText: 'Name value'});
+            assert.equal(container.querySelector('[name="nameOnlyText"]').value, 'Name value');
+
+            FormPopulator.populate(container, {idOnlyText: 'ID value'});
+            assert.equal(container.querySelector('#idOnlyText').value, 'ID value');
+
+            FormPopulator.populate(container, {conflictKey: 'conflictRadio2'});
+            const radios = container.querySelectorAll('[name="conflictKey"]');
+            assert.true(radios[1].checked);
+            assert.equal(container.querySelector('#conflictKey').textContent, 'Conflict div');
+        });
+
+        QUnit.test('Missing keys log warning', function(assert) {
+            const spy = spyOnConsole();
+            FormPopulator.populate(container, {nonExistentKey: 'value'});
+            assert.true(spy.logs.some(log => log[0].includes('nonExistentKey')));
+            spy.restore();
+        });
+
+        QUnit.test('Text input population', function(assert) {
+            const data = {
+                textInput: 'Hello World',
+                passwordInput: 'secret123',
+                emailInput: 'test@example.com',
+                urlInput: 'https://example.com',
+                telInput: '+1234567890',
+                searchInput: 'search term',
+                hiddenInput: 'hidden value'
+            };
+            FormPopulator.populate(container, data);
+            Object.entries(data).forEach(([key, value]) => {
+                assert.equal(container.querySelector(`[name="${key}"]`).value, value);
+            });
+        });
+
+        QUnit.test('Number input population', function(assert) {
+            FormPopulator.populate(container, {numberInput: 42, rangeInput: 75});
+            assert.equal(container.querySelector('[name="numberInput"]').value, '42');
+            assert.equal(container.querySelector('[name="rangeInput"]').value, '75');
+        });
+
+        QUnit.test('Date and time input population', function(assert) {
+            const data = {
+                dateInput: '2023-12-25',
+                timeInput: '14:30',
+                datetimeInput: '2023-12-25T14:30',
+                monthInput: '2023-12',
+                weekInput: '2023-W52'
+            };
+            FormPopulator.populate(container, data);
+            Object.entries(data).forEach(([key, value]) => {
+                assert.equal(container.querySelector(`[name="${key}"]`).value, value);
+            });
+        });
+
+        QUnit.test('Color input population', function(assert) {
+            FormPopulator.populate(container, {colorInput: '#ff0000'});
+            assert.equal(container.querySelector('[name="colorInput"]').value, '#ff0000');
+        });
+
+        QUnit.test('Single checkbox population', function(assert) {
+            FormPopulator.populate(container, {
+                singleCheckbox: 'yes',
+                initiallyChecked: 'no-match',
+                nameOnlyCheckbox: 'yes'
+            });
+            assert.true(container.querySelector('[name="singleCheckbox"]').checked);
+            assert.false(container.querySelector('[name="initiallyChecked"]').checked);
+            assert.true(container.querySelector('[name="nameOnlyCheckbox"]').checked);
+        });
+
+        QUnit.test('Single checkbox only checks on string value match', function(assert) {
+            FormPopulator.populate(container, {singleCheckbox: 'yes', initiallyChecked: 'no'});
+            assert.true(container.querySelector('[name="singleCheckbox"]').checked);
+            assert.false(container.querySelector('[name="initiallyChecked"]').checked);
+        });
+
+        QUnit.test('Checkbox group population', function(assert) {
+            FormPopulator.populate(container, {checkboxGroup: ['option1', 'option3']});
+            const checkboxes = container.querySelectorAll('[name="checkboxGroup"]');
+            assert.true(checkboxes[0].checked);
+            assert.false(checkboxes[1].checked);
+            assert.true(checkboxes[2].checked);
+
+            FormPopulator.populate(container, {checkboxGroup: 'option2'});
+            assert.false(checkboxes[0].checked);
+            assert.true(checkboxes[1].checked);
+            assert.false(checkboxes[2].checked);
+
+            FormPopulator.populate(container, {checkboxGroup: []});
+            checkboxes.forEach(cb => assert.false(cb.checked));
+
+            FormPopulator.populate(container, {checkboxGroup: null});
+            checkboxes.forEach(cb => assert.false(cb.checked));
+        });
+
+        QUnit.test('Radio button group population', function(assert) {
+            FormPopulator.populate(container, {radioGroup1: 'radio2', radioGroup2: 'groupB1'});
+            const group1 = container.querySelectorAll('[name="radioGroup1"]');
+            assert.false(group1[0].checked);
+            assert.true(group1[1].checked);
+            assert.false(group1[2].checked);
+            const group2 = container.querySelectorAll('[name="radioGroup2"]');
+            assert.true(group2[0].checked);
+            assert.false(group2[1].checked);
+        });
+
+        QUnit.test('Single radio population', function(assert) {
+            FormPopulator.populate(container, {singleRadio: 'yes'});
+            assert.true(container.querySelector('[name="singleRadio"]').checked);
+            FormPopulator.populate(container, {singleRadio: 'no'});
+            assert.false(container.querySelector('[name="singleRadio"]').checked);
+        });
+
+        QUnit.test('File input population', function(assert) {
+            const initial = container.querySelector('[name="fileInput"]').value;
+            FormPopulator.populate(container, {fileInput: 'fake.txt'});
+            assert.equal(container.querySelector('[name="fileInput"]').value, initial);
+        });
+
+        QUnit.test('Textarea population', function(assert) {
+            FormPopulator.populate(container, {textareaField: 'Multi\nline'});
+            assert.equal(container.querySelector('[name="textareaField"]').value, 'Multi\nline');
+        });
+
+        QUnit.test('Single select population', function(assert) {
+            FormPopulator.populate(container, {singleSelect: 'option2'});
+            assert.equal(container.querySelector('[name="singleSelect"]').value, 'option2');
+        });
+
+        QUnit.test('Multiple select population', function(assert) {
+            FormPopulator.populate(container, {multipleSelect: ['multi1', 'multi3']});
+            const selected = Array.from(container.querySelector('[name="multipleSelect"]').selectedOptions).map(o => o.value).sort();
+            assert.deepEqual(selected, ['multi1', 'multi3']);
+        });
+
+        QUnit.test('Select with TomSelect', function(assert) {
+            const single = container.querySelector('[name="singleSelect"]');
+            new TomSelect(single, {});
+            FormPopulator.populate(container, {singleSelect: 'option2'});
+            assert.equal(single.value, 'option2');
+
+            const multi = container.querySelector('[name="multipleSelect"]');
+            new TomSelect(multi, {});
+            FormPopulator.populate(container, {multipleSelect: ['multi1', 'multi3']});
+            const selected = Array.from(multi.selectedOptions).map(o => o.value).sort();
+            assert.deepEqual(selected, ['multi1', 'multi3']);
+        });
+
+        QUnit.test('Select with Selectize', function(assert) {
+            const single = container.querySelector('[name="singleSelect"]');
+            $(single).selectize({});
+            FormPopulator.populate(container, {singleSelect: 'option2'});
+            assert.equal(single.value, 'option2');
+
+            const multi = container.querySelector('[name="multipleSelect"]');
+            $(multi).selectize({});
+            FormPopulator.populate(container, {multipleSelect: ['multi1', 'multi3']});
+            const selected = Array.from(multi.selectedOptions).map(o => o.value).sort();
+            assert.deepEqual(selected, ['multi1', 'multi3']);
+        });
+
+        QUnit.test('Select with Chosen', function(assert) {
+            const single = container.querySelector('[name="singleSelect"]');
+            $(single).chosen();
+            FormPopulator.populate(container, {singleSelect: 'option2'});
+            assert.equal(single.value, 'option2');
+
+            const multi = container.querySelector('[name="multipleSelect"]');
+            $(multi).chosen();
+            FormPopulator.populate(container, {multipleSelect: ['multi1', 'multi3']});
+            const selected = Array.from(multi.selectedOptions).map(o => o.value).sort();
+            assert.deepEqual(selected, ['multi1', 'multi3']);
+        });
+
+        QUnit.test('Content element population', function(assert) {
+            const data = {
+                spanElement: 'New span',
+                divElement: 'New div',
+                paragraphElement: 'New p',
+                headingElement: 'New h1'
+            };
+            FormPopulator.populate(container, data);
+            Object.entries(data).forEach(([key, value]) => {
+                assert.equal(container.querySelector(`[name="${key}"]`).textContent, value);
+            });
+        });
+
+        QUnit.test('Content element with HTML sanitization', function(assert) {
+            const data = {divElement: '<strong>Bold</strong>'};
+            FormPopulator.populate(container, data);
+            const el = container.querySelector('[name="divElement"]');
+            assert.false(el.innerHTML.includes('<strong>'));
+            FormPopulator.populate(container, data, {}, false);
+            assert.true(el.innerHTML.includes('<strong>'));
+        });
+
+        QUnit.test('List population with arrays', function(assert) {
+            FormPopulator.populate(container, {unorderedList: ['A', 'B', 'C']});
+            const items = container.querySelectorAll('[name="unorderedList"] li');
+            assert.equal(items.length, 3);
+            assert.equal(items[0].textContent, 'A');
+            assert.equal(items[2].textContent, 'C');
+        });
+
+        QUnit.test('Nested list population', function(assert) {
+            FormPopulator.populate(container, {unorderedList: ['1', ['a', 'b'], '3']});
+            const list = container.querySelector('[name="unorderedList"]');
+            assert.true(list.innerHTML.includes('a'));
+            assert.true(list.innerHTML.includes('b'));
+        });
+
+        QUnit.test('Attribute setting', function(assert) {
+            const attributes = {attributeTest: {'data-new': 'val', 'class': 'cls', 'data-original': null}};
+            FormPopulator.populate(container, {attributeTest: ''}, attributes);
+            const el = container.querySelector('[name="attributeTest"]');
+            assert.equal(el.dataset.new, 'val');
+            assert.equal(el.className, 'cls');
+            assert.false(el.hasAttribute('data-original'));
+        });
+
+        QUnit.test('getValuesByKey - basic extraction', function(assert) {
+            container.querySelector('[name="textInput"]').value = 'abc';
+            container.querySelector('[name="numberInput"]').value = '123';
+            const values = FormPopulator.getValuesByKey(container, ['textInput', 'numberInput']);
+            assert.equal(values.textInput, 'abc');
+            assert.equal(values.numberInput, '123');
+        });
+
+        QUnit.test('getValuesByKey - checkbox and radio', function(assert) {
+            container.querySelector('[name="singleCheckbox"]').checked = true;
+            const values = FormPopulator.getValuesByKey(container, ['singleCheckbox']);
+            assert.equal(values.singleCheckbox, 'yes');
+            container.querySelector('[name="singleCheckbox"]').checked = false;
+            const values2 = FormPopulator.getValuesByKey(container, ['singleCheckbox']);
+            assert.false(values2.hasOwnProperty('singleCheckbox'));
+        });
+
+        QUnit.test('getValuesByKey - select', function(assert) {
+            container.querySelector('[name="singleSelect"]').value = 'option2';
+            const values = FormPopulator.getValuesByKey(container, ['singleSelect']);
+            assert.equal(values.singleSelect, 'option2');
+        });
+
+        QUnit.test('Edge cases - null and undefined', function(assert) {
+            FormPopulator.populate(container, {textInput: null, checkboxGroup: undefined, singleSelect: null});
+            assert.equal(container.querySelector('[name="textInput"]').value, '');
+            const group = container.querySelectorAll('[name="checkboxGroup"]');
+            group.forEach(cb => assert.false(cb.checked));
+            assert.equal(container.querySelector('[name="singleSelect"]').selectedIndex, -1);
+        });
+
+        QUnit.test('Edge cases - invalid data types', function(assert) {
+            FormPopulator.populate(container, {textInput: 123, checkboxGroup: 1, singleSelect: null});
+            assert.equal(container.querySelector('[name="textInput"]').value, '123');
+            const group = container.querySelectorAll('[name="checkboxGroup"]');
+            group.forEach(cb => assert.false(cb.checked));
+            assert.equal(container.querySelector('[name="singleSelect"]').selectedIndex, -1);
+        });
+
+        QUnit.test('Select clearing and non-existent value', function(assert) {
+            const select = container.querySelector('[name="singleSelect"]');
+            select.value = 'option2'; // pre-set
+
+            FormPopulator.populate(container, {singleSelect: null});
+            assert.equal(select.value, '', 'Clears on null');
+
+            FormPopulator.populate(container, {singleSelect: 'nonexistent'});
+            assert.equal(select.value, '', 'Stays cleared if value not found');
+
+            FormPopulator.populate(container, {singleSelect: 'option1'});
+            assert.equal(select.value, 'option1', 'Sets existing value');
+        });
+
+        QUnit.test('Numeric input with AutoNumeric - population', function(assert) {
+            // Create a text input for AutoNumeric (not type="number")
+            const numericInput = document.createElement('input');
+            numericInput.type = 'text';
+            numericInput.id = 'numericInput';
+            numericInput.name = 'numericInput';
+            container.appendChild(numericInput);
+
+            // Initialize AutoNumeric with options (e.g., currency format)
+            const anInstance = new AutoNumeric('#numericInput', {
+                digitGroupSeparator: ',',
+                decimalPlaces: 2,
+                currencySymbol: '$',
+                currencySymbolPlacement: 'p' // prefix
+            });
+
+            // Populate with a number
+            FormPopulator.populate(container, { numericInput: 1234.56 });
+            assert.equal(anInstance.getFormatted(), '$1,234.56', 'Formatted value is set correctly');
+            assert.equal(anInstance.getNumericString(), '1234.56', 'Raw numeric string is correct');
+
+            // Populate with string value
+            FormPopulator.populate(container, { numericInput: '9876.54' });
+            assert.equal(anInstance.getFormatted(), '$9,876.54', 'Handles string input correctly');
+
+            // Edge case: null/undefined/empty
+            FormPopulator.populate(container, { numericInput: "" });
+            assert.equal(anInstance.getFormatted(), '', 'Clears value on null');
+            assert.equal(anInstance.getNumericString(), "", 'Raw value is null on empty'); // AutoNumeric returns null
+            // But FormPopulator normalizes to ""
+            // (Removed misplaced assertion here)
+
+            // Invalid value (should not crash, AutoNumeric handles it)
+            FormPopulator.populate(container, { numericInput: 'invalid' });
+            assert.equal(anInstance.getFormatted(), '', 'Ignores invalid non-numeric value')
+        });
+
+        QUnit.test('Numeric input with AutoNumeric - extraction', function(assert) {
+            // Create and initialize as above
+            const numericInput = document.createElement('input');
+            numericInput.type = 'text';
+            numericInput.id = 'numericInputExtract';
+            numericInput.name = 'numericInputExtract';
+            container.appendChild(numericInput);
+
+            const anInstance = new AutoNumeric('#numericInputExtract', {
+                digitGroupSeparator: ',',
+                decimalPlaces: 2
+            });
+
+            // Set value via AutoNumeric
+            anInstance.set(5678.9);
+
+            // Extract
+            const values = FormPopulator.getValuesByKey(container, ['numericInputExtract']);
+            assert.equal(values.numericInputExtract, '5678.9', 'Extracts raw numeric string (not formatted)');
+
+            // Empty case
+            anInstance.set('');
+            const emptyValues = FormPopulator.getValuesByKey(container, ['numericInputExtract']);
+            assert.equal(emptyValues.numericInputExtract, '', 'Extracts empty string for cleared input');
+
+            // Check attributes are set
+        });
+
+        QUnit.test('AutoNumeric with attributes and sanitization', function(assert) {
+            const numericInput = document.createElement('input');
+            numericInput.type = 'text';
+            numericInput.name = 'numericWithAttrs';
+            container.appendChild(numericInput);
+
+            const anInstance = new AutoNumeric(numericInput, {decimalPlaces: 0});
+
+            // Populate with value and attributes
+            const attributes = {numericWithAttrs: {'data-test': 'value', 'class': 'custom-class'}};
+            FormPopulator.populate(container, {numericWithAttrs: 1000}, attributes);
+            assert.equal(anInstance.getNumericString(), '1000', 'Value set correctly');
+            assert.equal(numericInput.getAttribute('data-test'), 'value', 'Attribute set');
+            assert.ok(numericInput.classList.contains('custom-class'), 'Class attribute set');
+
+        });
+
+
+    });
+</script>
+</body>
+</html>

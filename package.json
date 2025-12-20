@@ -1,0 +1,49 @@
+{
+  "name": "form-populator",
+  "version": "1.2.1",
+  "description": "Lightweight vanilla JS utility to instantly sync API data (or any object) into forms and DOM elements. One call populates inputs, checkboxes, radios, selects (native/TomSelect/Selectize/Chosen/AutoNumeric), content, lists, and attributes. Extract values back just as easily. Zero dependencies, no frameworks, full control.",
+  "main": "dist/form-populator.min.js",
+  "module": "src/FormPopulator.js",
+  "browser": "dist/form-populator.min.js",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "terser src/FormPopulator.js -c -m -o dist/form-populator.min.js --source-map \"root='./',url='form-populator.min.js.map'\"",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Open tests/FormPopulator_tests.html in your brow  ser to run QUnit tests\" && exit 0"
+  },
+  "keywords": [
+    "form",
+    "populate",
+    "hydrate",
+    "dom",
+    "vanilla",
+    "javascript",
+    "tomselect",
+    "selectize",
+    "chosen",
+    "checkbox",
+    "radio",
+    "select",
+    "list"
+  ],
+  "author": "Raul Jose Santos",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rauljose/form-populator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rauljose/form-populator/issues"
+  },
+  "homepage": "https://github.com/rauljose/form-populator#readme",
+  "devDependencies": {
+    "terser": "^5.26.0"
+  }
+}
