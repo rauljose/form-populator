@@ -263,4 +263,4 @@ const FormPopulator = require('form-populator');
 
 ## License
 
-MIT © Your Name
+MIT © Raúl José Santos
