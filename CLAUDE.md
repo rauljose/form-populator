@@ -1,4 +1,4 @@
-# FormPopulator - Claude Assistant Guide
+# FormPopulator - AI, Claude Assistant Guide
 
 ## What is FormPopulator?
 
