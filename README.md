@@ -3,7 +3,7 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-green.svg)](package.json)
 
-**Lightweight vanilla JS utility for populating and extracting values from HTML forms and DOM elements. It uses object keys to match elements by name or id attributes, handling all form types and optionally the enhanced select libraries (tomSelect, Selectizer, Chosen) or autoNumeric.org automatically.
+Lightweight vanilla JS utility for populating and extracting values from HTML forms and DOM elements. It uses object keys to match elements by name or id attributes, handling all form types and optionally the enhanced select libraries (tomSelect, Selectizer, Chosen) or autoNumeric.org automatically.
 
 ## Features
 
