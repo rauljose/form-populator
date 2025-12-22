@@ -2,7 +2,8 @@
 
 ## What is FormPopulator?
 
-FormPopulator is a vanilla JavaScript utility for populating and extracting values from HTML forms and DOM elements. It maps object keys to element `name` or `id` attributes, handling all form types and enhanced select libraries automatically.
+FormPopulator is a vanilla JavaScript utility for populating and extracting values from HTML forms and DOM elements. 
+It uses object keys to match elements by name or id attributes, handling all form types and optionally the enhanced select libraries (tomSelect, Selectizer, Chosen) or autoNumeric.org automatically.
 
 ## When to Use FormPopulator
 
