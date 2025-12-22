@@ -1,7 +1,7 @@
 // noinspection JSUnusedGlobalSymbols,EqualityComparisonWithCoercionJS
 
 /**
- * FormPopulator.js Set/get values by name or id inside an html container
+ * FormPopulator.js Set/get values by name or id inside an HTML container
  *
  * @version 1.2.1
  * @description Stateless utility for populating and extracting values from HTML elements based on name (primary) or id (fallback).
@@ -86,7 +86,7 @@ const FormPopulator = {
      *
      * @param {HTMLElement} container
      * @param {array} keys
-     * @returns {{}} keyed by key in keys with the value or content, an array if muliple name
+     * @returns {{}} keyed by key in keys with the value or content, an array if multiple name
      *
      * @throws {Error} If container is not a valid DOM element
      * @throws {Error} If data is null or not an object
@@ -113,8 +113,6 @@ const FormPopulator = {
                 if(elements.length === 0) {
                     continue;
                 }
-
-                let value;
 
                 // Special case: radio buttons — only one can be checked
                 if(elements[0].type === 'radio') {
@@ -171,7 +169,7 @@ const FormPopulator = {
     /**
      * Routes value to correct setter based on tag (input, select, textarea, media, content).
      *
-     * @param element
+     * @param {HTMLElement} element
      * @param value
      * @param {boolean} sanitizeHtml sets content with true: textContent, false: innerHTML
      * @private
@@ -237,7 +235,7 @@ const FormPopulator = {
     /**
      * Clears then sets select value, detecting TomSelect/Selectize/Chosen automatically.
      *
-     * @param element
+     * @param {HTMLElement} element
      * @param value
      * @private
      */
@@ -299,7 +297,7 @@ const FormPopulator = {
     /**
      * Deselects all options, using library API if enhanced select detected: omSelect, Selectize & Chosen
      *
-     * @param element
+     * @param {HTMLElement} element
      * @private
      */
     _clearSelect(element) {
@@ -333,7 +331,7 @@ const FormPopulator = {
     /**
      * Renders array as <li> items, supporting nested arrays for sublists.
      *
-     * @param element
+     * @param {HTMLElement} element
      * @param value
      * @private
      */
@@ -376,7 +374,7 @@ const FormPopulator = {
     /**
      * Routes to correct getter based on tag and returns the value.
      *
-     * @param element
+     * @param {HTMLElement} element
      * @returns {string|*|string|string[]}
      * @private
      */
@@ -404,7 +402,7 @@ const FormPopulator = {
     /**
      * Returns input value, handling checkbox/radio checked state and AutoNumeric.
      *
-     * @param element
+     * @param {HTMLElement} element
      * @returns {string|*|string}
      * @private
      */
@@ -430,7 +428,7 @@ const FormPopulator = {
     /**
      * Returns selected value(s)—string for single, array for multiple.
      *
-     * @param element
+     * @param {HTMLElement} element
      * @returns {*|string[]}
      * @private
      */
@@ -445,7 +443,7 @@ const FormPopulator = {
     /**
      * Sets/removes attributes on element, handles data-* via dataset.
      *
-     * @param element
+     * @param {HTMLElement} element
      * @param attributes
      * @private
      */
@@ -484,7 +482,7 @@ const FormPopulator = {
     /**
      * Returns all attributes as object
      *
-     * @param element
+     * @param {HTMLElement} element
      * @returns {{}}
      * @private
      */
