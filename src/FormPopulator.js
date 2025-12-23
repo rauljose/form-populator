@@ -3,11 +3,10 @@
 /**
  * FormPopulator.js Set/get values by name or id inside an HTML container
  *
- * @version 1.2.1
+ * @version 1.2.3
  * @description Stateless utility for populating and extracting values from HTML elements based on name (primary) or id (fallback).
  *
  * Supports TomSelect, Selectize, and Chosen.
- * check it is
  */
 
 const FormPopulator = {
@@ -61,9 +60,17 @@ const FormPopulator = {
                             // No String() coercion, no interference — trust the developer
                             // Uses loose == for comparison (intentional: matches real form behavior, e.g. 1 == "1")
                             const valuesToCheck = Array.isArray(value) ? value : [value];
-
                             elements.forEach(el => {
-                                el.checked = valuesToCheck.includes(el.value);
+                                el.checked = valuesToCheck.some(val => val == el.value);
+                                if(hasAttributes) this._setElementAttributes(el, attributes[key]);
+                            });
+                        } else {
+                            // If value is an array, map by index; otherwise set the same value on all.
+                            const valuesToSet = Array.isArray(value) ? value : null;
+
+                            elements.forEach((el, idx) => {
+                                const v = valuesToSet ? (valuesToSet[idx] ?? '') : value;
+                                this._populateElement(el, v, sanitizeHtml);
                                 if(hasAttributes) this._setElementAttributes(el, attributes[key]);
                             });
                         }
@@ -295,12 +302,15 @@ const FormPopulator = {
     },
 
     /**
-     * Deselects all options, using library API if enhanced select detected: omSelect, Selectize & Chosen
+     * Deselects all options, using library API if enhanced select detected: TomSelect, Selectize & Chosen
      *
      * @param {HTMLElement} element
      * @private
      */
     _clearSelect(element) {
+        // Native
+        element.selectedIndex = -1;
+
         // TomSelect
         if(element.tomselect) {
             element.tomselect.clear(true); // silent
@@ -320,12 +330,8 @@ const FormPopulator = {
             const $el = $(element);
             if($el.data('chosen')) {
                 $el.val(null).trigger('chosen:updated');
-                return;
             }
         }
-
-        // Native
-        element.selectedIndex = -1;
     },
 
     /**
@@ -453,6 +459,7 @@ const FormPopulator = {
                 const attrValue = attributes[attrName];
                 if(attrName.toLowerCase().startsWith("data-")) {
                     element.dataset[this._toDatasetKey(attrName)] = attrValue;
+                    continue;
                 }
                 if(attrValue === null || attrValue === undefined) {
                     element.removeAttribute(attrName);
