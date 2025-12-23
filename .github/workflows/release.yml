@@ -44,7 +44,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "GitHub Actions"
-          git config user. email "actions@github.com"
+          git config user.email "actions@github.com"
           git add dist/*
           git commit -m "chore:  build dist for manual release" || echo "No changes in dist"
           git push || echo "Nothing to push"
