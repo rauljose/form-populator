@@ -1,49 +1,50 @@
-{
-  "name": "form-populator",
-  "version": "1.2.1",
-  "description": "Lightweight vanilla JS utility to instantly sync API data (or any object) into forms and DOM elements. One call populates inputs, checkboxes, radios, selects (native/TomSelect/Selectize/Chosen/AutoNumeric), content, lists, and attributes. Extract values back just as easily. Zero dependencies, no frameworks, full control.",
-  "main": "dist/form-populator.min.js",
-  "module": "src/FormPopulator.js",
-  "browser": "dist/form-populator.min.js",
-  "sideEffects": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "scripts": {
-    "build": "terser src/FormPopulator.js -c -m -o dist/form-populator.min.js --source-map \"root='./',url='form-populator.min.js.map'\"",
-    "prepublishOnly": "npm run build",
-    "test": "echo \"Open tests/FormPopulator_tests.html in your brow  ser to run QUnit tests\" && exit 0"
-  },
-  "keywords": [
-    "form",
-    "populate",
-    "hydrate",
-    "dom",
-    "vanilla",
-    "javascript",
-    "tomselect",
-    "selectize",
-    "chosen",
-    "checkbox",
-    "radio",
-    "select",
-    "list"
-  ],
-  "author": "Raul Jose Santos",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rauljose/form-populator.git"
-  },
-  "bugs": {
-    "url": "https://github.com/rauljose/form-populator/issues"
-  },
-  "homepage": "https://github.com/rauljose/form-populator#readme",
-  "devDependencies": {
-    "terser": "^5.26.0"
-  }
-}
+name: Release & Publish
+
+on: 
+  push:
+    tags: 
+      - 'v*.*.*'  # Triggers on tags like v1.2.1, v2.0.0
+  workflow_dispatch:
+    
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    # Needed to push built files back
+      packages:  write    # For GitHub Packages if ever used
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for tagging
+
+      - name:  Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name:  Build minified files
+        run:  npm run build
+
+      - name:  Commit built files to tag (if changed)
+        if: startsWith(github.ref, 'refs/tags/')  # Only when triggered by a tag
+        run:  |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github. com"
+          git add dist/*
+          git commit -m "chore: build dist for release ${{ github.ref_name }}" || echo "No changes in dist"
+          git push origin HEAD:${{ github.ref_name }} || echo "Nothing to push"
+
+      - name: Commit built files to branch (manual trigger)
+        if: github. event_name == 'workflow_dispatch'  # Only when manually triggered
+        run: |
+          git config user.name "GitHub Actions"
+          git config user. email "actions@github.com"
+          git add dist/*
+          git commit -m "chore:  build dist for manual release" || echo "No changes in dist"
+          git push || echo "Nothing to push"
