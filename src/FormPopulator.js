@@ -3,7 +3,7 @@
 /**
  * FormPopulator.js Set/get values by name or id inside an HTML container
  *
- * @version 1.2.3
+ * @version 1.2.4
  * @description Stateless utility for populating and extracting values from HTML elements based on name (primary) or id (fallback).
  *
  * Supports TomSelect, Selectize, and Chosen.
@@ -36,7 +36,7 @@ const FormPopulator = {
                 try {
                     const elements = this._findElementsByNameOrId(container, key);
                     if(elements.length === 0) {
-                        console.log(`FormPopulator: No elements found for key '${key}' (tried name and id)`);
+                        console.warn(`FormPopulator: No elements found for key '${key}' (tried name and id)`);
                         continue;
                     }
 
@@ -48,11 +48,17 @@ const FormPopulator = {
                         const isCheckbox = elements[0].type === 'checkbox';
 
                         if(isRadio) {
-                            const valueToCheck = String(value);
-                            elements.forEach(el => {
-                                el.checked = el.value == valueToCheck;
-                                if(hasAttributes) this._setElementAttributes(el, attributes[key]);
-                            });
+                            if(value === null || value === undefined) {
+                                elements.forEach(el => {
+                                    el.checked = false;
+                                    if(hasAttributes) this._setElementAttributes(el, attributes[key]);
+                                });
+                            } else {
+                                elements.forEach(el => {
+                                    el.checked = el.value == value;
+                                    if(hasAttributes) this._setElementAttributes(el, attributes[key]);
+                                });
+                            }
                         } else if(isCheckbox) {
                             // Clean, fast, real: treat single value as [value], array as-is
                             // null/undefined → [null]/[undefined] → no match → clears all checkboxes (correct!)
@@ -111,7 +117,7 @@ const FormPopulator = {
 
         for(const key of keys) {
             if(typeof key !== 'string') {
-                console.warn(`FormPopulator: Invalid key type '${typeof key}', skipping`, key);
+                console.error(`FormPopulator: Invalid key type '${typeof key}', skipping`, key);
                 continue;
             }
 
@@ -212,7 +218,7 @@ const FormPopulator = {
                 element.value = value;
                 break;
             case 'textarea':
-                element.value = String(value);
+                element.value = value;
                 break;
             case 'select':
                 this._populateSelect(element, value);
@@ -221,10 +227,10 @@ const FormPopulator = {
             case 'video':
             case 'audio':
             case 'iframe':
-                element.src = String(value);
+                element.src = value;
                 break;
             case 'a':
-                element.href = String(value);
+                element.href = value;
                 break;
             case 'ul':
             case 'ol':
@@ -232,9 +238,9 @@ const FormPopulator = {
                 break;
             default:
                 if(sanitizeHtml) {
-                    element.textContent = String(value);
+                    element.textContent = value;
                 } else {
-                    element.innerHTML = String(value);
+                    element.innerHTML = value;
                 }
         }
     },
@@ -297,7 +303,6 @@ const FormPopulator = {
                 }
             }
             // If no match found → stays cleared (intentional: better than jumping to first option)
-            // Optional: console.warn(`FormPopulator: No matching option for value '${value}' in select '${element.name || element.id}'`);
         }
     },
 
@@ -343,7 +348,7 @@ const FormPopulator = {
      */
     _populateList(element, value) {
         if(!Array.isArray(value)) {
-            element.innerHTML = this._escapeHtml(String(value));
+            element.innerHTML = this._escapeHtml(value);
             return;
         }
 
@@ -353,7 +358,7 @@ const FormPopulator = {
                 const subItems = this._buildNestedListHtml(item, tagName);
                 return `<li><${tagName}>${subItems}</${tagName}></li>`;
             } else {
-                return `<li>${this._escapeHtml(String(item))}</li>`;
+                return `<li>${this._escapeHtml(item)}</li>`;
             }
         }).join('');
     },
@@ -372,7 +377,7 @@ const FormPopulator = {
                 const subItems = this._buildNestedListHtml(item, tagName);
                 return `<li><${tagName}>${subItems}</${tagName}></li>`;
             } else {
-                return `<li>${this._escapeHtml(String(item))}</li>`;
+                return `<li>${this._escapeHtml(item)}</li>`;
             }
         }).join('');
     },
@@ -457,14 +462,20 @@ const FormPopulator = {
         for(let attrName in attributes) {
             if(attributes.hasOwnProperty(attrName)) {
                 const attrValue = attributes[attrName];
-                if(attrName.toLowerCase().startsWith("data-")) {
-                    element.dataset[this._toDatasetKey(attrName)] = attrValue;
-                    continue;
-                }
-                if(attrValue === null || attrValue === undefined) {
+
+                // Canonical attribute semantics used by tests/docs:
+                // - undefined => remove attribute
+                // - null      => presence-only attribute (name, no value)
+                // - other     => set string value
+                // Notes:
+                // - For data-* we use setAttribute so null does NOT become "null" via dataset.
+                // - Presence-only is represented as empty string value in DOM APIs.
+                if(attrValue === undefined) {
                     element.removeAttribute(attrName);
+                } else if(attrValue === null) {
+                    element.setAttribute(attrName, '');
                 } else {
-                    element.setAttribute(attrName, String(attrValue));
+                    element.setAttribute(attrName, attrValue);
                 }
             }
         }
@@ -486,20 +497,6 @@ const FormPopulator = {
         return key.replace(/[^a-zA-Z0-9_$]/g, "");
     },
 
-    /**
-     * Returns all attributes as object
-     *
-     * @param {HTMLElement} element
-     * @returns {{}}
-     * @private
-     */
-    _getElementAttributes(element) {
-        const attrs = {};
-        for(const attr of element.attributes) {
-            attrs[attr.name] = attr.value;
-        }
-        return attrs;
-    },
 
     /**
      * Escapes HTML

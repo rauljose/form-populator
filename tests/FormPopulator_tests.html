@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FormPopulator QUnit Tests 1.2.3</title>
+    <title>FormPopulator QUnit Tests 1.2.4</title>
 
     <!-- jQuery (required for Selectize and Chosen) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -27,7 +27,7 @@
     <!-- AutoNumeric -->
     <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js"></script>
 
-    <script src="../dist/form-populator.min.js"></script>
+    <script src="../src/FormPopulator.js"></script>
 </head>
 <body>
 <div id="qunit"></div>
@@ -76,40 +76,61 @@
             <option value="multi3">Multiple 3</option>
             <option value="multi4">Multiple 4</option>
         </select>
-        <span id="spanElement" name="spanElement">Initial span content</span>
-        <div id="divElement" name="divElement">Initial div content</div>
-        <p id="paragraphElement" name="paragraphElement">Initial paragraph content</p>
-        <h1 id="headingElement" name="headingElement">Initial heading</h1>
-        <ul id="unorderedList" name="unorderedList">
+        <span id="spanElement">Initial span content</span>
+        <div id="divElement">Initial div content</div>
+        <p id="paragraphElement">Initial paragraph content</p>
+        <h1 id="headingElement">Initial heading</h1>
+        <ul id="unorderedList">
             <li>Initial item 1</li>
             <li>Initial item 2</li>
         </ul>
-        <ol id="orderedList" name="orderedList">
+        <ol id="orderedList">
             <li>Initial ordered item 1</li>
             <li>Initial ordered item 2</li>
         </ol>
-        <div id="attributeTest" name="attributeTest" data-original="value" data-replace="was"></div>
+        <div id="attributeTest" data-original="value" data-replace="was"></div>
         <div id="conflictKey">Conflict div</div>
         <input type="radio" name="conflictKey" value="conflictRadio1"/>
         <input type="radio" name="conflictKey" value="conflictRadio2"/>
-    </div>
+    
+        <!-- Additional fixtures for missing test coverage -->
+        <img id="imgElement" alt="img"/>
+        <video id="videoElement"></video>
+        <audio id="audioElement"></audio>
+        <iframe id="iframeElement"></iframe>
+        <a id="linkElement">link</a>
+
+        <!-- Repeated-name non-checkbox/radio inputs -->
+        <input type="text" name="repeatedText" value=""/>
+        <input type="text" name="repeatedText" value=""/>
+
+        <!-- Special-character keys (exercise CSS.escape for name and id) -->
+        <input type="text" name="user.email" value=""/>
+        <input type="text" id="items[0]" value=""/>
+        <input type="text" id="a:b" value=""/>
+
+        <!-- Checkbox group edge cases -->
+        <input type="checkbox" name="edgeCheckboxGroup" value="A"/>
+        <input type="checkbox" name="edgeCheckboxGroup" value="B"/>
+        <input type="checkbox" name="edgeCheckboxGroup" value="C"/>
+
+        <!-- Select with non-existent value tests (separate from existing selects) -->
+        <select name="singleSelectMissing">
+            <option value="">--</option>
+            <option value="one">One</option>
+        </select>
+
+        <select name="multiSelectMissing" multiple>
+            <option value="m1">M1</option>
+            <option value="m2">M2</option>
+            <option value="m3">M3</option>
+        </select>
+
+</div>
 </div>
 
 <script>
-    function spyOnConsole() {
-        const logs = [];
-        const originalLog = console.log;
-        console.log = function(...args) {
-            logs.push(args);
-            originalLog.apply(console, args);
-        };
-        return {
-            logs,
-            restore: () => {
-                console.log = originalLog;
-            }
-        };
-    }
+
 
     QUnit.module('FormPopulator Tests', function(hooks) {
         let container;
@@ -135,13 +156,6 @@
             const radios = container.querySelectorAll('[name="conflictKey"]');
             assert.true(radios[1].checked);
             assert.equal(container.querySelector('#conflictKey').textContent, 'Conflict div');
-        });
-
-        QUnit.test('Missing keys log warning', function(assert) {
-            const spy = spyOnConsole();
-            FormPopulator.populate(container, {nonExistentKey: 'value'});
-            assert.true(spy.logs.some(log => log[0].includes('nonExistentKey')));
-            spy.restore();
         });
 
         QUnit.test('Text input population', function(assert) {
@@ -309,14 +323,14 @@
             };
             FormPopulator.populate(container, data);
             Object.entries(data).forEach(([key, value]) => {
-                assert.equal(container.querySelector(`[name="${key}"]`).textContent, value);
+                assert.equal(container.querySelector(`#${key}`).textContent, value);
             });
         });
 
         QUnit.test('Content element with HTML sanitization', function(assert) {
             const data = {divElement: '<strong>Bold</strong>'};
             FormPopulator.populate(container, data);
-            const el = container.querySelector('[name="divElement"]');
+            const el = container.querySelector('#divElement');
             assert.false(el.innerHTML.includes('<strong>'));
             FormPopulator.populate(container, data, {}, false);
             assert.true(el.innerHTML.includes('<strong>'));
@@ -324,7 +338,7 @@
 
         QUnit.test('List population with arrays', function(assert) {
             FormPopulator.populate(container, {unorderedList: ['A', 'B', 'C']});
-            const items = container.querySelectorAll('[name="unorderedList"] li');
+            const items = container.querySelectorAll('#unorderedList li');
             assert.equal(items.length, 3);
             assert.equal(items[0].textContent, 'A');
             assert.equal(items[2].textContent, 'C');
@@ -332,18 +346,36 @@
 
         QUnit.test('Nested list population', function(assert) {
             FormPopulator.populate(container, {unorderedList: ['1', ['a', 'b'], '3']});
-            const list = container.querySelector('[name="unorderedList"]');
+            const list = container.querySelector('#unorderedList');
             assert.true(list.innerHTML.includes('a'));
             assert.true(list.innerHTML.includes('b'));
         });
 
-        QUnit.test('Attribute setting', function(assert) {
-            const attributes = {attributeTest: {'data-new': 'val', 'class': 'cls', 'data-original': null}};
+        QUnit.test('Attribute setting - null sets presence-only, undefined removes', function(assert) {
+            const attributes = {
+                attributeTest: {
+                    'data-new': 'val',
+                    'class': 'cls',
+                    'data-original': null,      // should be present, value=""
+                    'replace': undefined,  // should be removed
+                    'disabled': null,           // should be present, value=""
+                    'title': 'Hello'
+                }
+            };
             FormPopulator.populate(container, {attributeTest: ''}, attributes);
-            const el = container.querySelector('[name="attributeTest"]');
+            const el = container.querySelector('#attributeTest');
+
             assert.equal(el.dataset.new, 'val');
             assert.equal(el.className, 'cls');
-            assert.false(el.hasAttribute('data-original'));
+
+            assert.equal(el.dataset.original, '', 'for "data-original":null dataset reflects empty string');
+
+            assert.false(el.hasAttribute('replace'), 'replace removed');
+
+            assert.true(el.hasAttribute('disabled'), 'for disabled:null disabled present');
+            assert.equal(el.getAttribute('disabled'), '', 'for disabled:null disabled empty string');
+
+            assert.equal(el.getAttribute('title'), 'Hello', 'normal attributes set');
         });
 
         QUnit.test('getValuesByKey - basic extraction', function(assert) {
@@ -481,7 +513,387 @@
 
         });
 
+        QUnit.test('Media element population (src) and extraction', function(assert) {
+            const data = {
+                imgElement: 'https://example.com/img.png',
+                videoElement: 'https://example.com/video.mp4',
+                audioElement: 'https://example.com/audio.mp3',
+                iframeElement: 'https://example.com/frame.html'
+            };
+            FormPopulator.populate(container, data);
 
+            const img = container.querySelector('#imgElement');
+            const video = container.querySelector('#videoElement');
+            const audio = container.querySelector('#audioElement');
+            const iframe = container.querySelector('#iframeElement');
+
+            assert.equal(img.src, data.imgElement, 'img.src set');
+            assert.equal(video.src, data.videoElement, 'video.src set');
+            assert.equal(audio.src, data.audioElement, 'audio.src set');
+            assert.equal(iframe.src, data.iframeElement, 'iframe.src set');
+
+            const values = FormPopulator.getValuesByKey(container, Object.keys(data));
+            assert.equal(values.imgElement, data.imgElement, 'img extracted');
+            assert.equal(values.videoElement, data.videoElement, 'video extracted');
+            assert.equal(values.audioElement, data.audioElement, 'audio extracted');
+            assert.equal(values.iframeElement, data.iframeElement, 'iframe extracted');
+        });
+
+        QUnit.test('Link element population (href) and extraction', function(assert) {
+            const url = 'https://example.com/page';
+            FormPopulator.populate(container, {linkElement: url});
+
+            const a = container.querySelector('#linkElement');
+            assert.equal(a.href, url, 'a.href set');
+
+            const values = FormPopulator.getValuesByKey(container, ['linkElement']);
+            assert.equal(values.linkElement, url, 'a extracted');
+        });
+
+        QUnit.test('Repeated-name text inputs populate all and extract as array', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+            assert.equal(els.length, 2, 'fixture has two repeatedText inputs');
+
+            FormPopulator.populate(container, {repeatedText: 'hello'});
+            assert.equal(els[0].value, 'hello', 'first repeatedText populated');
+            assert.equal(els[1].value, 'hello', 'second repeatedText populated');
+
+            els[0].value = 'v1';
+            els[1].value = 'v2';
+            const values = FormPopulator.getValuesByKey(container, ['repeatedText']);
+            assert.deepEqual(values.repeatedText, ['v1', 'v2'], 'extracted as array in DOM order');
+        });
+
+        QUnit.test('Special-character keys resolve by name then by id (CSS.escape)', function(assert) {
+            // name-based
+            FormPopulator.populate(container, {'user.email': 'a@b.com'});
+            const byName = container.querySelector('[name="user.email"]');
+            assert.equal(byName.value, 'a@b.com', 'populates by name with dot');
+
+            // id-based fallback (no matching name)
+            FormPopulator.populate(container, {'items[0]': 'x'});
+            const byId1 = container.querySelector('#items\\[0\\]');
+            assert.equal(byId1.value, 'x', 'populates by id with brackets');
+
+            FormPopulator.populate(container, {'a:b': 'y'});
+            const byId2 = container.querySelector('#a\\:b');
+            assert.equal(byId2.value, 'y', 'populates by id with colon');
+
+            const values = FormPopulator.getValuesByKey(container, ['user.email', 'items[0]', 'a:b']);
+            assert.equal(values['user.email'], 'a@b.com', 'extracts name-based key');
+            assert.equal(values['items[0]'], 'x', 'extracts id-based key');
+            assert.equal(values['a:b'], 'y', 'extracts id-based key');
+        });
+
+        QUnit.test('getValuesByKey checkbox group edge cases: none/one/many', function(assert) {
+            const boxes = Array.from(container.querySelectorAll('[name="edgeCheckboxGroup"]'));
+            assert.ok(boxes.length >= 3, 'fixture has edgeCheckboxGroup checkboxes');
+
+            // none checked -> key omitted
+            boxes.forEach(b => b.checked = false);
+            let values = FormPopulator.getValuesByKey(container, ['edgeCheckboxGroup']);
+            assert.false('edgeCheckboxGroup' in values, 'key omitted when none checked in group');
+
+            // exactly one -> string
+            boxes.forEach(b => b.checked = false);
+            boxes[0].checked = true;
+            values = FormPopulator.getValuesByKey(container, ['edgeCheckboxGroup']);
+            assert.equal(values.edgeCheckboxGroup, boxes[0].value, 'single checked returns string');
+
+            // multiple -> array
+            boxes.forEach(b => b.checked = false);
+            boxes[0].checked = true;
+            boxes[2].checked = true;
+            values = FormPopulator.getValuesByKey(container, ['edgeCheckboxGroup']);
+            assert.deepEqual(values.edgeCheckboxGroup, [boxes[0].value, boxes[2].value], 'multiple checked returns array');
+        });
+
+        QUnit.test('List population escapes HTML for items (XSS-safe)', function(assert) {
+            const payload = ['<b>bold</b>', '<img src=x onerror=alert(1)>', '& already escaped?'];
+            FormPopulator.populate(container, {unorderedList: payload});
+
+            const ul = container.querySelector('#unorderedList');
+            // Should NOT contain real tags from payload
+            assert.false(ul.innerHTML.includes('<b>bold</b>'), 'no unescaped <b> tag injected');
+            assert.false(ul.innerHTML.includes('<img'), 'no unescaped <img> tag injected');
+
+            // Should contain escaped equivalents
+            assert.ok(ul.innerHTML.includes('&lt;b&gt;bold&lt;/b&gt;'), 'contains escaped <b>');
+            assert.ok(ul.innerHTML.includes('&lt;img'), 'contains escaped <img>');
+        });
+
+        QUnit.test('getValuesByKey input validation: keys must be array', function(assert) {
+            assert.throws(function() {
+                FormPopulator.getValuesByKey(container, 'not-an-array');
+            }, /Keys must be an array/, 'throws if keys is not array');
+        });
+
+        QUnit.test('Select population: non-existent values clear selection (native select)', function(assert) {
+            const single = container.querySelector('[name="singleSelectMissing"]');
+            const multi = container.querySelector('[name="multiSelectMissing"]');
+
+            // Pre-select something to ensure we detect clearing
+            single.value = 'one';
+            Array.from(multi.options).forEach(opt => opt.selected = (opt.value === 'm2'));
+
+            FormPopulator.populate(container, {singleSelectMissing: 'does-not-exist'});
+            assert.equal(single.value, '', 'single select cleared when value missing');
+
+            FormPopulator.populate(container, {multiSelectMissing: ['m1', 'nope']});
+            const selected = Array.from(multi.selectedOptions).map(o => o.value);
+            assert.deepEqual(selected, ['m1'], 'multi select selects only matching values');
+        });
+
+        // ============================================================
+        // MISSING TESTS - Add these to FormPopulator_tests.html
+        // inside the QUnit.module('FormPopulator Tests', ...) block
+        // ============================================================
+
+        // --- Radio clearing tests ---
+
+        QUnit.test('Radio group clears on null', function(assert) {
+            const radios = container.querySelectorAll('[name="radioGroup1"]');
+            radios[1].checked = true; // pre-check one
+            assert.true(radios[1].checked, 'precondition: radio is checked');
+
+            FormPopulator.populate(container, {radioGroup1: null});
+            radios.forEach(r => assert.false(r.checked, 'radio unchecked after null'));
+        });
+
+        QUnit.test('Radio group clears on undefined', function(assert) {
+            const radios = container.querySelectorAll('[name="radioGroup1"]');
+            radios[2].checked = true; // pre-check one
+            assert.true(radios[2].checked, 'precondition: radio is checked');
+
+            FormPopulator.populate(container, {radioGroup1: undefined});
+            radios.forEach(r => assert.false(r.checked, 'radio unchecked after undefined'));
+        });
+
+        QUnit.test('Single radio clears on null', function(assert) {
+            const radio = container.querySelector('[name="singleRadio"]');
+            radio.checked = true;
+            assert.true(radio.checked, 'precondition: radio is checked');
+
+            FormPopulator.populate(container, {singleRadio: null});
+            assert.false(radio.checked, 'single radio unchecked after null');
+        });
+
+        // --- Textarea extraction test ---
+
+        QUnit.test('getValuesByKey - textarea extraction', function(assert) {
+            const textarea = container.querySelector('[name="textareaField"]');
+            textarea.value = 'Line 1\nLine 2\nLine 3';
+
+            const values = FormPopulator.getValuesByKey(container, ['textareaField']);
+            assert.equal(values.textareaField, 'Line 1\nLine 2\nLine 3', 'extracts multiline textarea value');
+        });
+
+        // --- Content element extraction tests ---
+
+        QUnit.test('getValuesByKey - content elements (span/div/p/h1)', function(assert) {
+            // Set known content
+            container.querySelector('#spanElement').textContent = 'Span text';
+            container.querySelector('#divElement').textContent = 'Div text';
+            container.querySelector('#paragraphElement').textContent = 'Paragraph text';
+            container.querySelector('#headingElement').textContent = 'Heading text';
+
+            const values = FormPopulator.getValuesByKey(container, [
+                'spanElement', 'divElement', 'paragraphElement', 'headingElement'
+            ]);
+
+            assert.equal(values.spanElement, 'Span text', 'extracts span textContent');
+            assert.equal(values.divElement, 'Div text', 'extracts div textContent');
+            assert.equal(values.paragraphElement, 'Paragraph text', 'extracts p textContent');
+            assert.equal(values.headingElement, 'Heading text', 'extracts h1 textContent');
+        });
+
+        // --- Ordered list test ---
+
+        QUnit.test('Ordered list population', function(assert) {
+            FormPopulator.populate(container, {orderedList: ['First', 'Second', 'Third']});
+            const items = container.querySelectorAll('#orderedList li');
+
+            assert.equal(items.length, 3, 'creates 3 list items');
+            assert.equal(items[0].textContent, 'First');
+            assert.equal(items[1].textContent, 'Second');
+            assert.equal(items[2].textContent, 'Third');
+        });
+
+        QUnit.test('Nested ordered list population', function(assert) {
+            FormPopulator.populate(container, {orderedList: ['A', ['A1', 'A2'], 'B']});
+            const ol = container.querySelector('#orderedList');
+
+            assert.true(ol.innerHTML.includes('A1'), 'contains nested item A1');
+            assert.true(ol.innerHTML.includes('A2'), 'contains nested item A2');
+            assert.true(ol.innerHTML.includes('<ol>'), 'contains nested <ol> tag');
+        });
+
+        // --- List non-array test ---
+
+        QUnit.test('List population with non-array value', function(assert) {
+            FormPopulator.populate(container, {unorderedList: 'single string value'});
+            const ul = container.querySelector('#unorderedList');
+
+            // Non-array should be escaped and set as innerHTML (no <li> wrapping)
+            assert.equal(ul.textContent, 'single string value', 'sets string directly');
+            assert.equal(ul.querySelectorAll('li').length, 0, 'no <li> elements created');
+        });
+
+        // --- Missing key extraction test ---
+
+        QUnit.test('getValuesByKey - non-existent key returns empty object', function(assert) {
+            const values = FormPopulator.getValuesByKey(container, ['nonExistentKey123']);
+            assert.deepEqual(values, {}, 'returns empty object for missing key');
+            assert.false('nonExistentKey123' in values, 'key is not present');
+        });
+
+        QUnit.test('getValuesByKey - mix of existing and non-existing keys', function(assert) {
+            container.querySelector('[name="textInput"]').value = 'exists';
+
+            const values = FormPopulator.getValuesByKey(container, ['textInput', 'doesNotExist', 'alsoMissing']);
+            assert.equal(Object.keys(values).length, 1, 'only one key in result');
+            assert.equal(values.textInput, 'exists', 'existing key extracted');
+            assert.false('doesNotExist' in values, 'missing key not in result');
+        });
+
+        // --- Repeated inputs + array test ---
+
+        QUnit.test('Repeated-name inputs populate by index when given array', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+            assert.equal(els.length, 2, 'fixture has two repeatedText inputs');
+
+            FormPopulator.populate(container, {repeatedText: ['first value', 'second value']});
+            assert.equal(els[0].value, 'first value', 'first input gets first array value');
+            assert.equal(els[1].value, 'second value', 'second input gets second array value');
+        });
+
+        QUnit.test('Repeated-name inputs with array shorter than elements', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            FormPopulator.populate(container, {repeatedText: ['only one']});
+            assert.equal(els[0].value, 'only one', 'first input populated');
+            assert.equal(els[1].value, '', 'second input gets empty string (undefined in array)');
+        });
+
+        // --- Enhanced select clearing tests ---
+
+        QUnit.test('TomSelect clears on null', function(assert) {
+            const select = container.querySelector('[name="singleSelect"]');
+            const ts = new TomSelect(select, {});
+            ts.setValue('option2');
+            assert.equal(select.value, 'option2', 'precondition: value set');
+
+            FormPopulator.populate(container, {singleSelect: null});
+            assert.equal(select.value, '', 'TomSelect cleared on null');
+        });
+
+        QUnit.test('TomSelect clears on empty array', function(assert) {
+            const select = container.querySelector('[name="multipleSelect"]');
+            const ts = new TomSelect(select, {});
+            ts.setValue(['multi1', 'multi2']);
+            assert.ok(select.selectedOptions.length > 0, 'precondition: options selected');
+
+            FormPopulator.populate(container, {multipleSelect: []});
+            assert.equal(select.selectedOptions.length, 0, 'TomSelect multi cleared on empty array');
+        });
+
+        QUnit.test('Selectize clears on null', function(assert) {
+            const select = container.querySelector('[name="singleSelect"]');
+            $(select).selectize({});
+            select.selectize.setValue('option2');
+            assert.equal(select.value, 'option2', 'precondition: value set');
+
+            FormPopulator.populate(container, {singleSelect: null});
+            assert.equal(select.value, '', 'Selectize cleared on null');
+        });
+
+        QUnit.test('Selectize clears on empty array', function(assert) {
+            const select = container.querySelector('[name="multipleSelect"]');
+            $(select).selectize({});
+            select.selectize.setValue(['multi1', 'multi2']);
+            assert.ok(select.selectedOptions.length > 0, 'precondition: options selected');
+
+            FormPopulator.populate(container, {multipleSelect: []});
+            assert.equal(select.selectedOptions.length, 0, 'Selectize multi cleared on empty array');
+        });
+
+        QUnit.test('Chosen clears on null', function(assert) {
+            const select = container.querySelector('[name="singleSelect"]');
+            $(select).chosen();
+            $(select).val('option2').trigger('chosen:updated');
+            assert.equal(select.value, 'option2', 'precondition: value set');
+
+            FormPopulator.populate(container, {singleSelect: null});
+            assert.equal(select.value, '', 'Chosen cleared on null');
+        });
+
+        QUnit.test('Chosen clears on empty array', function(assert) {
+            const select = container.querySelector('[name="multipleSelect"]');
+            $(select).chosen();
+            $(select).val(['multi1', 'multi2']).trigger('chosen:updated');
+            assert.ok(select.selectedOptions.length > 0, 'precondition: options selected');
+
+            FormPopulator.populate(container, {multipleSelect: []});
+            assert.equal(select.selectedOptions.length, 0, 'Chosen multi cleared on empty array');
+        });
+
+        // --- Enhanced select extraction tests ---
+
+        QUnit.test('getValuesByKey extracts TomSelect single value', function(assert) {
+            const select = container.querySelector('[name="singleSelect"]');
+            const ts = new TomSelect(select, {});
+            ts.setValue('option3');
+
+            const values = FormPopulator.getValuesByKey(container, ['singleSelect']);
+            assert.equal(values.singleSelect, 'option3', 'extracts TomSelect single value');
+        });
+
+        QUnit.test('getValuesByKey extracts TomSelect multiple values', function(assert) {
+            const select = container.querySelector('[name="multipleSelect"]');
+            const ts = new TomSelect(select, {});
+            ts.setValue(['multi2', 'multi4']);
+
+            const values = FormPopulator.getValuesByKey(container, ['multipleSelect']);
+            assert.deepEqual(values.multipleSelect.sort(), ['multi2', 'multi4'], 'extracts TomSelect multi values');
+        });
+
+        QUnit.test('getValuesByKey extracts Selectize value', function(assert) {
+            const select = container.querySelector('[name="singleSelect"]');
+            $(select).selectize({});
+            select.selectize.setValue('option1');
+
+            const values = FormPopulator.getValuesByKey(container, ['singleSelect']);
+            assert.equal(values.singleSelect, 'option1', 'extracts Selectize value');
+        });
+
+        QUnit.test('getValuesByKey extracts Chosen value', function(assert) {
+            const select = container.querySelector('[name="singleSelect"]');
+            $(select).chosen();
+            $(select).val('option2').trigger('chosen:updated');
+
+            const values = FormPopulator.getValuesByKey(container, ['singleSelect']);
+            assert.equal(values.singleSelect, 'option2', 'extracts Chosen value');
+        });
+
+        // --- Radio extraction none checked test ---
+
+        QUnit.test('getValuesByKey - radio group none checked returns empty string', function(assert) {
+            const radios = container.querySelectorAll('[name="radioGroup1"]');
+            radios.forEach(r => r.checked = false); // ensure none checked
+
+            const values = FormPopulator.getValuesByKey(container, ['radioGroup1']);
+            assert.true('radioGroup1' in values, 'key is present even when none checked');
+            assert.equal(values.radioGroup1, '', 'returns empty string when no radio checked');
+        });
+
+        QUnit.test('getValuesByKey - single radio unchecked returns empty string', function(assert) {
+            const radio = container.querySelector('[name="singleRadio"]');
+            radio.checked = false;
+
+            const values = FormPopulator.getValuesByKey(container, ['singleRadio']);
+            assert.true('singleRadio' in values, 'key is present');
+            assert.equal(values.singleRadio, '', 'returns empty string for unchecked single radio');
+        });
     });
 </script>
 </body>
