@@ -258,6 +258,16 @@ import FormPopulator from 'form-populator';
 // CommonJS
 const FormPopulator = require('form-populator');
 ```
+## AI Assistant Integration
+
+This library is optimized for use with AI coding assistants. We provide specific context files to help LLMs understand how to integrate `FormPopulator` correctly:
+
+- **[PROMPT.md](PROMPT.md)**: General integration rules and "Hard Rules" for using this library with ChatGPT or other LLMs.
+- **[CLAUDE.md](CLAUDE.md)**: A streamlined guide tailored for Anthropic's Claude.
+- **[GEMINI.md](GEMINI.md)**: Integration manual and troubleshooting checklist for Google Gemini.
+
+Use these files to prime your AI session for better code generation, or as the basis for your own custom integration guide.
+
 
 ## License
 

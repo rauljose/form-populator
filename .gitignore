@@ -6,7 +6,7 @@ yarn-error.log*
 npm-shrinkwrap.json
 
 # Build artifacts
-dist/*.map
+dist/form-populator.min.js
 dist/form-populator.min.js.map
 
 # Editor / OS files
