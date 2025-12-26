@@ -3,7 +3,8 @@
 ## What is FormPopulator?
 
 FormPopulator is a vanilla JavaScript utility for populating and extracting values from HTML forms and DOM elements. 
-It uses object keys to match elements by name or id attributes, handling all form types and optionally the enhanced select libraries (tomSelect, Selectizer, Chosen) or autoNumeric.org automatically.
+It uses object keys to match elements by name or id attributes, handling all form types and 
+optionally the enhanced select libraries (tomSelect, Selectizer, Chosen) or autoNumeric.org automatically.
 
 ## When to Use FormPopulator
 
@@ -22,17 +23,17 @@ It uses object keys to match elements by name or id attributes, handling all for
 - Need complex conditional logic per field
 - Working with file inputs (FormPopulator skips them by design)
 
-## Quick Reference
+## FormPopulator Quick Reference
 
 ```javascript
 // Populate form from data
 FormPopulator.populate(container, data, attributes?, sanitizeHtml?);
 
 // Extract values back
-FormPopulator.getValuesByKey(container, ['key1', 'key2', ...]);
+FormPopulator.getValues(container, ['key1', 'key2', ...]);
 ```
 
-## API Details
+## FormPopulator API Details
 
 ### populate(container, data, attributes?, sanitizeHtml?)
 
@@ -43,7 +44,7 @@ FormPopulator.getValuesByKey(container, ['key1', 'key2', ...]);
 | `attributes` | Object | `{}` | `{ elementName: { attr: value }, ... }` |
 | `sanitizeHtml` | boolean | `true` | `true` = textContent (safe), `false` = innerHTML |
 
-### getValuesByKey(container, keys)
+### getValues(container, keys)
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -52,7 +53,7 @@ FormPopulator.getValuesByKey(container, ['key1', 'key2', ...]);
 
 **Returns:** Object with extracted values. Unchecked checkboxes omitted.
 
-## Element Handling Cheat Sheet
+## FormPopulator Element Handling Cheat Sheet
 
 | Element | Populate | Extract |
 |---------|----------|---------|
@@ -68,7 +69,7 @@ FormPopulator.getValuesByKey(container, ['key1', 'key2', ...]);
 | `a` | Sets `.href` | Returns `.href` |
 | `div/span/p/h1-h6` | Sets `.textContent` (or `.innerHTML` if sanitizeHtml=false) | Returns `.textContent` |
 
-## Enhanced Library Support
+## FormPopulator Enhanced Library Support
 
 FormPopulator auto-detects and handles:
 
@@ -79,9 +80,9 @@ FormPopulator auto-detects and handles:
 
 No configuration needed—just ensure libraries are initialized before calling FormPopulator.
 
-## Code Patterns
+## FormPopulator Code Patterns
 
-### Pattern: Populate form from API response
+### FormPopulator Pattern: Populate form from API response
 
 ```javascript
 fetch('/api/user/123')
@@ -97,11 +98,11 @@ fetch('/api/user/123')
   });
 ```
 
-### Pattern: Extract form for API submission
+### FormPopulator Pattern: Extract form for API submission
 
 ```javascript
 const form = document.getElementById('userForm');
-const data = FormPopulator.getValuesByKey(form, [
+const data = FormPopulator.getValues(form, [
   'name', 'email', 'role', 'notifications', 'permissions'
 ]);
 
@@ -112,7 +113,7 @@ fetch('/api/user/123', {
 });
 ```
 
-### Pattern: Clear form / reset specific fields
+### FormPopulator Pattern: Clear form / reset specific fields
 
 ```javascript
 // Clear all specified fields
@@ -125,7 +126,7 @@ FormPopulator.populate(form, {
 });
 ```
 
-### Pattern: Populate with attributes
+### FormPopulator Pattern: Populate with attributes
 
 ```javascript
 FormPopulator.populate(form, 
@@ -139,7 +140,7 @@ FormPopulator.populate(form,
 );
 ```
 
-### Pattern: Display content in non-form elements
+### FormPopulator Pattern: Display content in non-form elements
 
 ```javascript
 FormPopulator.populate(document.getElementById('profile'), {
@@ -150,7 +151,7 @@ FormPopulator.populate(document.getElementById('profile'), {
 });
 ```
 
-### Pattern: Raw HTML (careful with XSS)
+### FormPopulator Pattern: Raw HTML (careful with XSS)
 
 ```javascript
 // Only use with trusted/sanitized content
@@ -161,7 +162,7 @@ FormPopulator.populate(container,
 );
 ```
 
-## Important Behaviors
+## FormPopulator Important Behaviors
 
 1. **Lookup priority**: `name` attribute checked first, then `id`
 2. **Loose equality**: `1` matches `"1"` (checkbox value="1" checked by passing integer 1)
@@ -180,7 +181,7 @@ document.getElementById('status').checked = data.isActive;
 // Use FormPopulator when there are many fields or mixed types
 ```
 
-## Error Handling
+## FormPopulator Error Handling
 
 ```javascript
 try {
@@ -192,7 +193,7 @@ try {
 }
 ```
 
-## Integration Notes
+## FormPopulator Integration Notes
 
 - Works with any container (form, div, section, etc.)
 - Does not submit forms—handles data binding only

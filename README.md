@@ -8,7 +8,7 @@ Lightweight vanilla JS utility for populating and extracting values from HTML fo
 ## Features
 
 - **One-call population** — Pass a container and data object, done
-- **Bidirectional** — `populate()` to fill, `getValuesByKey()` to extract
+- **Bidirectional** — `populate()` to fill, `getValues()` to extract
 - **All form elements** — text, email, tel, number, date, checkbox, radio, select, textarea, file (readonly)
 - **Enhanced selects** — Optional: TomSelect, Selectize, Chosen auto-detected and handled
 - **AutoNumeric** — Optional: Formatted currency/number inputs populated and extracted correctly
@@ -55,7 +55,7 @@ FormPopulator.populate(form, {
 });
 
 // Extract values back
-const values = FormPopulator.getValuesByKey(form, ['firstName', 'email', 'newsletter', 'role']);
+const values = FormPopulator.getValues(form, ['firstName', 'email', 'newsletter', 'role']);
 // → { firstName: 'John', email: 'john@example.com', newsletter: 'yes', role: 'admin' }
 </script>
 ```
@@ -73,7 +73,7 @@ Populates elements inside `container` with values from `data`.
 | `attributes` | `Object` | `{}` | Optional attributes to set per key |
 | `sanitizeHtml` | `boolean` | `true` | Use `textContent` (safe) or `innerHTML` (raw) |
 
-### `FormPopulator.getValuesByKey(container, keys)`
+### `FormPopulator.getValues(container, keys)`
 
 Extracts values from elements inside `container`.
 
@@ -147,7 +147,7 @@ FormPopulator.populate(container, { price: 1234.56 });
 // Input displays: $1,234.56
 
 // Extract returns raw numeric string
-const values = FormPopulator.getValuesByKey(container, ['price']);
+const values = FormPopulator.getValues(container, ['price']);
 // → { price: '1234.56' }
 ```
 
@@ -206,20 +206,20 @@ FormPopulator.populate(container, { message: '<b>Bold</b>' }, {}, false);
 
 ```javascript
 // Single values
-const { email } = FormPopulator.getValuesByKey(form, ['email']);
+const { email } = FormPopulator.getValues(form, ['email']);
 
 // Multiple checkbox group returns array
-const { permissions } = FormPopulator.getValuesByKey(form, ['permissions']);
+const { permissions } = FormPopulator.getValues(form, ['permissions']);
 // → ['read', 'write'] if multiple checked
 // → 'read' if single checked
 // → (key omitted if none checked)
 
 // Radio returns checked value or empty string
-const { status } = FormPopulator.getValuesByKey(form, ['status']);
+const { status } = FormPopulator.getValues(form, ['status']);
 // → 'active' or ''
 
 // Multiple select returns array
-const { categories } = FormPopulator.getValuesByKey(form, ['categories']);
+const { categories } = FormPopulator.getValues(form, ['categories']);
 // → ['cat1', 'cat2']
 ```
 
@@ -262,7 +262,6 @@ const FormPopulator = require('form-populator');
 
 This library is optimized for use with AI coding assistants. We provide specific context files to help LLMs understand how to integrate `FormPopulator` correctly:
 
-- **[PROMPT.md](PROMPT.md)**: General integration rules and "Hard Rules" for using this library with ChatGPT or other LLMs.
 - **[CLAUDE.md](CLAUDE.md)**: A streamlined guide tailored for Anthropic's Claude.
 - **[GEMINI.md](GEMINI.md)**: Integration manual and troubleshooting checklist for Google Gemini.
 

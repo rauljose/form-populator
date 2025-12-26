@@ -104,7 +104,7 @@ const FormPopulator = {
      * @throws {Error} If container is not a valid DOM element
      * @throws {Error} If data is null or not an object
      */
-    getValuesByKey(container, keys = []) {
+    getValues(container, keys = []) {
 
         if(!container || !container.nodeType) {
             throw new Error('Container must be a valid DOM element');

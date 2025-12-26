@@ -1,143 +1,74 @@
-# GEMINI_HELP.md — FormPopulator Integration Manual
+# GEMINI_INTEGRATION.md — FormPopulator Technical Reference
 
-## System Instruction
+## 1. FormPopulator Recognition Trigger
+**When to activate this knowledge:**
+Apply these patterns **only** when the user asks to:
+1.  "Hydrate," "populate," or "fill" a form/container from a JSON object.
+2.  "Extract," "get values," or "serialize" a form/container into a JSON object.
+3.  Debug issues related to `FormPopulator.js`.
 
-**Role:** Expert Integrator for `FormPopulator.js`.
-**Objective:** Hydrate forms/UI from data and extract values back to objects using the *specific* implementation provided in `FormPopulator.js`.
-**Constraint:** Do not hallucinate features. Rely strictly on the code behavior described below.
-
----
-
-## 1. The Golden Rules (Process Control)
-
-When helping the user integrate FormPopulator, adhere to these rules derived from the project's `PROMPT.md` and source code:
-
-1. **No Guessing:** Never invent DOM selectors, IDs, or data shapes.
-   * *Action:* Always ask for the **HTML snippet** and a **sample Data Object** first.
-2. **Source of Truth:** The code (`FormPopulator.js`) supersedes any documentation if there is a conflict.
-   * *Fact:* The library uses `name` attribute priority over `id`.
-3. **Minimal Diff:** Do not modify `FormPopulator.js` unless explicitly requested. Use it as a black box tool.
-4. **Plugin Awareness:** Always check if the user is using TomSelect, Selectize, Chosen, or AutoNumeric.
-   * *Rule:* These libraries must be initialized **before** `FormPopulator.populate()` is called.
+**Scope:**
+Do NOT apply "Minimal Diff" or strict formatting rules to the user's broader codebase (e.g., authentication, routing, styling). Apply strictness **only** to the specific lines of code calling `FormPopulator`.
 
 ---
 
-## 2. API Reference (Strict)
+## 2. FormPopulator Technical Implementation Specs
 
-### A. `FormPopulator.populate(container, data, attributes?, sanitizeHtml?)`
+### Core Logic (Source of Truth) for FormPopulator
+* **Selector Priority:** `[name="key"]` > `#key`.
+* **Equality:** Loose equality (`==`). Do not cast strings/numbers manually before population.
+* **Security:** Default `sanitizeHtml: true` (textContent). Use `false` (innerHTML) only if user explicitly requests "Raw HTML".
 
-**Behavior:**
+### A. Hydration Pattern (`populate`)
+**Goal:** Fill UI from Data.
 
-* **Targeting:** Finds elements by `[name="key"]` first. If none, tries `#key` (escaped via `CSS.escape`).
-* **Equality:** Uses **loose equality** (`==`). Do not force string conversion for comparisons (e.g., `1` matches `"1"`).
-* **Clearing:**
-  * `null` or `undefined` values in `data` will **clear** the input (unchecked checkboxes, deselect options).
-  * **Selects:** Always cleared (`selectedIndex = -1` or plugin clear) *before* setting new values.
-* **Sanitization:**
-  * If `sanitizeHtml` is `true` (default): Uses `textContent`.
-  * If `sanitizeHtml` is `false`: Uses `innerHTML` (Risk: XSS).
+1.  **Preparation:** Ensure optional plugins (TomSelect/Selectize/Chosen/AutoNumeric) are initialized *before* this call.
+2.  **Syntax:**
+    ```javascript
+    FormPopulator.populate(
+      document.getElementById('target-container'), // Container
+      payloadObject,                               // Data
+      attributeMap,                                // Optional: { key: { disabled: null } }
+      true                                         // Optional: sanitize (default: true)
+    );
+    ```
+3.  **Behavior Note:** `null`/`undefined` in data clears the field.
 
-### B. `FormPopulator.getValuesByKey(container, keys)`
+### B. Extraction Pattern (`getValues`) FormPopulator
+**Goal:** Create Payload from UI.
 
-**Behavior:**
-
-* **Input:** `keys` must be an **Array of strings**.
-* **Return Shape (Crucial):**
-  * **Text/Select/Radio:** Returns a `String`.
-  * **Checkbox (Single checked):** Returns a `String` (the value of the checked box).
-  * **Checkbox (Multiple checked):** Returns an `Array` of strings.
-  * **Unchecked Checkboxes:** The key is **omitted** from the result object.
-  * **Missing Elements:** The key is **omitted** from the result object.
-
----
-
-## 3. Integration Patterns & Snippets
-
-### Scenario A: Basic Hydration
-
-**Context:** Standard HTML form, no plugins.
-
-```javascript
-// 1. Define container
-const form = document.querySelector('#my-feature-form');
-
-// 2. Data payload (e.g., from API)
-const data = {
-    userId: 101,             // Matches <input name="userId"> or <span id="userId">
-    'user.email': 'a@b.com', // Matches <input name="user.email"> (handles special chars)
-    roles: ['admin', 'dev']  // Matches <input type="checkbox" name="roles" value="admin">
-};
-
-// 3. Populate
-FormPopulator.populate(form, data);
-```
-
-### Scenario B: Extraction for Save
-
-**Context:** Getting data ready for `JSON.stringify`.
-
-```javascript
-const form = document.querySelector('#my-feature-form');
-
-// Define exactly which fields to grab
-const keys = ['userId', 'user.email', 'roles'];
-
-const payload = FormPopulator.getValuesByKey(form, keys);
-// Note: If 'roles' checkboxes are unchecked, payload.roles will be undefined.
-```
-
-### Scenario C: Advanced Attributes (readonly/disabled)
-
-**Context:** Locking fields based on permissions.
-
-* **`null`**: Sets attribute present (e.g., `<input disabled>`).
-* **`undefined`**: Removes attribute.
-* **String**: Sets value (e.g., `data-id="123"`).
-
-```javascript
-const attributes = {
-    userId: { 
-        readonly: null,      // makes field readonly
-        'data-status': 'active' 
-    }
-};
-FormPopulator.populate(form, data, attributes);
-```
-
-### Scenario D: Third-Party Libraries (TomSelect / AutoNumeric)
-
-**Context:** Complex UI components.
-**Rule:** Library instance must exist on the DOM element properties (`el.tomselect`, `el.selectize`, etc.) or be globally available (`AutoNumeric`).
-
-```javascript
-// 1. Initialize Plugin FIRST
-new TomSelect('#roleSelect');
-new AutoNumeric('#priceInput', { currencySymbol: '$' });
-
-// 2. Populate SECOND
-FormPopulator.populate(container, {
-    roleSelect: 'manager',  // Calls tomselect.setValue()
-    priceInput: 1250.00     // Calls autonumeric.set(1250.00)
-});
-```
+1.  **Syntax:**
+    ```javascript
+    const payload = FormPopulator.getValues(
+      document.getElementById('target-container'),
+      ['field1', 'field2', 'checkboxGroup'] // Must be an Array of strings
+    );
+    ```
+2.  **Return Data Types (Crucial):**
+    * **Single Checkbox:** Returns `String` (value). 
+    * **Multiple Checkboxes:** Returns `Array` of strings.
+    * **Empty/Unchecked:** Key is **omitted** from object.
 
 ---
 
-## 4. Troubleshooting Checklist (The "Why isn't it working?" List)
+## 3.FormPopulator Integration Checklist (Mental Sandbox)
 
-1. **Selector Mismatch:** Did the user put the ID on a wrapper `div` instead of the `input`?
-   * *Fix:* FormPopulator targets the *input* element itself.
-2. **Timing Issue:** Did they call `populate()` before the HTML was rendered or before Plugins were initialized?
-3. **Casing:** `name="UserEmail"` does not match data key `userEmail`. Keys are case-sensitive.
-4. **Backend Array Expectation:**
-   * *Risk:* User's backend expects `ids[]` (array).
-   * *Issue:* `getValuesByKey` returns a single string if only 1 checkbox is checked.
-   * *Fix:* Helper logic needed: `payload.ids = [].concat(payload.ids || [])`.
+Before generating code, verify:
 
-## 5. Required Inputs from User
+1.  **Container Scope:** Does the selector target the *parent* wrapper (good) or the input itself (bad)? `FormPopulator` needs the container.
+2.  **Plugin Timing:** Are we calling `populate()` inside a `DOMContentLoaded` event or after the modal opens?
+3.  **Data Keys:** Do the JSON keys match the HTML `name` attributes? (Case-sensitive).
 
-Before generating integration code, ask for:
+---
 
-1. **HTML Snippet:** The actual container code.
-2. **Data Sample:** A JSON example of the data to populate.
-3. **Plugin List:** Are they using TomSelect, Selectize, etc.?
+## 4. FormPopulator Troubleshooting & Edge Cases
+
+* **Conflict:** If `id="status"` and `name="status"` exist on different elements, `name` wins.
+* **Backend Arrays:** If `getValues` returns a single string for a checkbox group (because only one was checked), but the backend expects `ids[]`, generate a fixer line:
+    ```javascript
+    // Fix single-value checkbox edge case for backend
+    if (payload.ids && !Array.isArray(payload.ids)) payload.ids = [payload.ids];
+    ```
+* **AutoNumeric:** `FormPopulator` automatically detects `AutoNumeric` objects attached to DOM elements. No extra config needed.
+
+---
