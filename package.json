@@ -1,7 +1,7 @@
 {
   "name": "form-populator",
-  "version": "1.2.4",
-  "description": "Lightweight vanilla JS utility to instantly sync API data (or any object) into forms and DOM elements. One call populates inputs, checkboxes, radios, selects (native/TomSelect/Selectize/Chosen/AutoNumeric), content, lists, and attributes. Extract values back just as easily. Zero dependencies, no frameworks, full control.",
+  "version": "1.2.5",
+  "description": "Lightweight vanilla JS utility to instantly hydrate API data (or any object) into forms and DOM elements. One call populates inputs, checkboxes, radios, selects (native/TomSelect/Selectize/Chosen/AutoNumeric), content, lists, and attributes. Extract values back just as easily. Zero dependencies, no frameworks, full control.",
   "main": "dist/form-populator.min.js",
   "module": "src/FormPopulator.js",
   "browser": "dist/form-populator.min.js",
