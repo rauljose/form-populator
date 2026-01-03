@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FormPopulator QUnit Tests 1.2.4</title>
+    <title>FormPopulator QUnit Tests 2025-01-03</title>
 
     <!-- jQuery (required for Selectize and Chosen) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -224,6 +224,17 @@
             assert.false(container.querySelector('[name="initiallyChecked"]').checked);
             assert.true(container.querySelector('[name="nameOnlyCheckbox"]').checked);
         });
+        QUnit.test('Single checkbox clears on null and undefined', function(assert) {
+            var cb = container.querySelector('[name="initiallyChecked"]');
+            assert.true(cb.checked, 'precondition: fixture starts checked');
+
+            FormPopulator.populate(container, {initiallyChecked: null});
+            assert.false(cb.checked, 'clears on null');
+
+            cb.checked = true; // re-check
+            FormPopulator.populate(container, {initiallyChecked: undefined});
+            assert.false(cb.checked, 'clears on undefined');
+        });
 
         QUnit.test('Single checkbox only checks on string value match', function(assert) {
             FormPopulator.populate(container, {singleCheckbox: 'yes', initiallyChecked: 'no'});
@@ -248,6 +259,35 @@
 
             FormPopulator.populate(container, {checkboxGroup: null});
             checkboxes.forEach(cb => assert.false(cb.checked));
+        });
+        QUnit.test('Checkbox group clears on empty array, null, and undefined', function(assert) {
+            var checkboxes = container.querySelectorAll('[name="checkboxGroup"]');
+            var i;
+
+            FormPopulator.populate(container, {checkboxGroup: ['option1', 'option3']});
+            assert.true(checkboxes[0].checked, 'option1 checked');
+            assert.false(checkboxes[1].checked, 'option2 not checked');
+            assert.true(checkboxes[2].checked, 'option3 checked');
+
+            FormPopulator.populate(container, {checkboxGroup: []});
+            for (i = 0; i < checkboxes.length; i++) {
+                assert.false(checkboxes[i].checked, 'clears all on empty array');
+            }
+
+            FormPopulator.populate(container, {checkboxGroup: ['option2']});
+            assert.false(checkboxes[0].checked, 'option1 not checked');
+            assert.true(checkboxes[1].checked, 'option2 checked');
+            assert.false(checkboxes[2].checked, 'option3 not checked');
+
+            FormPopulator.populate(container, {checkboxGroup: null});
+            for (i = 0; i < checkboxes.length; i++) {
+                assert.false(checkboxes[i].checked, 'clears all on null');
+            }
+
+            FormPopulator.populate(container, {checkboxGroup: undefined});
+            for (i = 0; i < checkboxes.length; i++) {
+                assert.false(checkboxes[i].checked, 'clears all on undefined');
+            }
         });
 
         QUnit.test('Checkbox group (4 items) - even, odd, partial sequence patterns', function(assert) {
@@ -403,6 +443,20 @@
             const selected = Array.from(container.querySelector('[name="multipleSelect"]').selectedOptions).map(o => o.value).sort();
             assert.deepEqual(selected, ['multi1', 'multi3']);
         });
+        QUnit.test('Multiple select population accepts scalar value (selects one, clears others)', function(assert) {
+            var select = container.querySelector('[name="multipleSelect"]');
+            var selectedValues = [];
+            var i;
+
+            FormPopulator.populate(container, {multipleSelect: ['multi1', 'multi3']});
+            FormPopulator.populate(container, {multipleSelect: 'multi2'});
+
+            for (i = 0; i < select.selectedOptions.length; i++) {
+                selectedValues.push(select.selectedOptions[i].value);
+            }
+
+            assert.deepEqual(selectedValues, ['multi2'], 'only scalar value remains selected');
+        });
 
         QUnit.test('Select with TomSelect', function(assert) {
             const single = container.querySelector('[name="singleSelect"]');
@@ -505,6 +559,27 @@
             assert.equal(el.getAttribute('disabled'), '', 'for disabled:null disabled empty string');
 
             assert.equal(el.getAttribute('title'), 'Hello', 'normal attributes set');
+        });
+        QUnit.test('Attribute setting - data-* null/empty/undefined semantics', function(assert) {
+            var el = container.querySelector('[name="textInput"]');
+
+            // null => presence-only (empty string), never "null"
+            el.setAttribute('data-x', 'orig');
+            FormPopulator.populate(container, {textInput: 'abc'}, {textInput: {'data-x': null}});
+            assert.true(el.hasAttribute('data-x'), 'data-x present on null');
+            assert.equal(el.getAttribute('data-x'), '', 'data-x empty string on null');
+            assert.notEqual(el.getAttribute('data-x'), 'null', 'data-x does not become "null"');
+
+            // '' => empty string, still present
+            el.setAttribute('data-x', 'willChange');
+            FormPopulator.populate(container, {textInput: 'abc'}, {textInput: {'data-x': ''}});
+            assert.true(el.hasAttribute('data-x'), 'data-x present on empty string');
+            assert.equal(el.getAttribute('data-x'), '', 'data-x remains empty string');
+
+            // undefined => removed
+            el.setAttribute('data-x', 'toRemove');
+            FormPopulator.populate(container, {textInput: 'abc'}, {textInput: {'data-x': undefined}});
+            assert.false(el.hasAttribute('data-x'), 'data-x removed on undefined');
         });
 
         QUnit.test('getValues - basic extraction', function(assert) {
@@ -1109,6 +1184,13 @@
             FormPopulator.populate(container, {repeatedText: ['only one']});
             assert.equal(els[0].value, 'only one', 'first input populated');
             assert.equal(els[1].value, '', 'second input gets empty string (undefined in array)');
+        });
+        QUnit.test('Repeated-name inputs ignore extra array values beyond elements', function(assert) {
+            var els = container.querySelectorAll('[name="repeatedText"]');
+
+            FormPopulator.populate(container, {repeatedText: ['first', 'second', 'third (ignored)']});
+            assert.equal(els[0].value, 'first', 'first input populated');
+            assert.equal(els[1].value, 'second', 'second input populated');
         });
 
         // --- Enhanced select clearing tests ---
