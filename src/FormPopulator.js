@@ -106,6 +106,9 @@ const FormPopulator = {
      * @private
      */
     _setRadioChecked(element, targetValue, keyAttrs) {
+        // INTENTIONAL: Loose equality (==) required.
+        // DOM values are always strings; Data values may be numbers/booleans.
+        // Strict equality (===) would break standard form coercion logic. Do not change.
         element.checked = element.value == targetValue;
         if(keyAttrs) {
             this._setElementAttributes(element, keyAttrs);
@@ -566,7 +569,7 @@ const FormPopulator = {
      */
     _escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = (text === null || text === undefined) ? '' : text;
         return div.innerHTML;
     }
 };
