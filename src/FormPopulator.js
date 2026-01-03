@@ -45,40 +45,30 @@ const FormPopulator = {
 
                     if(elements.length > 1 || (elements[0] && (elements[0].type === 'radio' || elements[0].type === 'checkbox'))) {
                         const isRadio = elements[0].type === 'radio';
-                        const isCheckbox = elements[0].type === 'checkbox';
+                        const isCheckbox = elements[0]. type === 'checkbox';
+                        const keyAttrs = hasAttributes ? attributes[key] : null;
 
                         if(isRadio) {
                             if(value === null || value === undefined) {
-                                elements.forEach(el => {
-                                    el.checked = false;
-                                    if(hasAttributes) this._setElementAttributes(el, attributes[key]);
-                                });
+                                for(let i = 0; i < elements.length; i++) {
+                                    this._uncheckRadio(elements[i], keyAttrs);
+                                }
                             } else {
-                                elements.forEach(el => {
-                                    el.checked = el.value == value;
-                                    if(hasAttributes) this._setElementAttributes(el, attributes[key]);
-                                });
+                                for(let i = 0; i < elements. length; i++) {
+                                    this._setRadioChecked(elements[i], value, keyAttrs);
+                                }
                             }
                         } else if(isCheckbox) {
-                            // Clean, fast, real: treat single value as [value], array as-is
-                            // null/undefined → [null]/[undefined] → no match → clears all checkboxes (correct!)
-                            // empty array → clears all
-                            // No String() coercion, no interference — trust the developer
-                            // Uses loose == for comparison (intentional: matches real form behavior, e.g. 1 == "1")
                             const valuesToCheck = Array.isArray(value) ? value : [value];
-                            elements.forEach(el => {
-                                el.checked = valuesToCheck.some(val => val == el.value);
-                                if(hasAttributes) this._setElementAttributes(el, attributes[key]);
-                            });
+                            for(let i = 0; i < elements.length; i++) {
+                                this._setCheckboxChecked(elements[i], valuesToCheck, keyAttrs);
+                            }
                         } else {
-                            // If value is an array, map by index; otherwise set the same value on all.
+                            // Multiple non-checkbox/radio inputs (e.g., multiple text inputs with same name)
                             const valuesToSet = Array.isArray(value) ? value : null;
-
-                            elements.forEach((el, idx) => {
-                                const v = valuesToSet ? (valuesToSet[idx] ?? '') : value;
-                                this._populateElement(el, v, sanitizeHtml);
-                                if(hasAttributes) this._setElementAttributes(el, attributes[key]);
-                            });
+                            for(let i = 0; i < elements.length; i++) {
+                                this._populateIndexedElement(elements[i], valuesToSet, value, i, sanitizeHtml, keyAttrs);
+                            }
                         }
                     } else {
                         const element = elements[0];
@@ -93,7 +83,76 @@ const FormPopulator = {
             }
         }
     },
+    /**
+     * Unchecks radio button and optionally sets attributes
+     *
+     * @param {HTMLElement} element - Radio input element
+     * @param {object|null} keyAttrs - Attributes to set, or null
+     * @private
+     */
+    _uncheckRadio(element, keyAttrs) {
+        element.checked = false;
+        if(keyAttrs) {
+            this._setElementAttributes(element, keyAttrs);
+        }
+    },
 
+    /**
+     * Sets radio button checked state based on value match
+     *
+     * @param {HTMLElement} element - Radio input element
+     * @param {*} targetValue - Value to match against
+     * @param {object|null} keyAttrs - Attributes to set, or null
+     * @private
+     */
+    _setRadioChecked(element, targetValue, keyAttrs) {
+        element.checked = element.value == targetValue;
+        if(keyAttrs) {
+            this._setElementAttributes(element, keyAttrs);
+        }
+    },
+
+    /**
+     * Sets checkbox checked state based on value array match
+     *
+     * @param {HTMLElement} element - Checkbox input element
+     * @param {Array} valuesToCheck - Array of values to check against
+     * @param {object|null} keyAttrs - Attributes to set, or null
+     * @private
+     */
+    _setCheckboxChecked(element, valuesToCheck, keyAttrs) {
+        // Use for loop instead of . some() to avoid closure
+        let isChecked = false;
+        for(let i = 0; i < valuesToCheck.length; i++) {
+            if(valuesToCheck[i] == element. value) {
+                isChecked = true;
+                break;
+            }
+        }
+        element.checked = isChecked;
+        if(keyAttrs) {
+            this._setElementAttributes(element, keyAttrs);
+        }
+    },
+
+    /**
+     * Populates element with indexed or fallback value and optional attributes
+     *
+     * @param {HTMLElement} element - Element to populate
+     * @param {Array|null} valuesToSet - Array of values indexed by position, or null
+     * @param {*} fallbackValue - Value to use if valuesToSet is null
+     * @param {number} index - Index for valuesToSet array
+     * @param {boolean} sanitizeHtml - Whether to sanitize HTML content
+     * @param {object|null} keyAttrs - Attributes to set, or null
+     * @private
+     */
+    _populateIndexedElement(element, valuesToSet, fallbackValue, index, sanitizeHtml, keyAttrs) {
+        const v = valuesToSet ?  (valuesToSet[index] ??  '') : fallbackValue;
+        this._populateElement(element, v, sanitizeHtml);
+        if(keyAttrs) {
+            this._setElementAttributes(element, keyAttrs);
+        }
+    },
     /**
      * Reads values from elements matching keys, by name then by id, inside container
      *

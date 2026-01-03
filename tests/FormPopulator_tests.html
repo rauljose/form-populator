@@ -36,6 +36,16 @@
         <input type="text" id="textInput" name="textInput"/>
         <input type="text" name="nameOnlyText"/>
         <input type="text" id="idOnlyText"/>
+        <!-- Three repeated-name inputs for comprehensive testing -->
+        <input type="text" name="tripleText" value=""/>
+        <input type="text" name="tripleText" value=""/>
+        <input type="text" name="tripleText" value=""/>
+
+        <!-- Four repeated-name inputs -->
+        <input type="email" name="quadEmail" value=""/>
+        <input type="email" name="quadEmail" value=""/>
+        <input type="email" name="quadEmail" value=""/>
+        <input type="email" name="quadEmail" value=""/>
         <input type="password" id="passwordInput" name="passwordInput"/>
         <input type="email" id="emailInput" name="emailInput"/>
         <input type="url" id="urlInput" name="urlInput"/>
@@ -55,6 +65,11 @@
         <input type="checkbox" name="checkboxGroup" value="option1"/>
         <input type="checkbox" name="checkboxGroup" value="option2"/>
         <input type="checkbox" name="checkboxGroup" value="option3" checked="checked"/>
+        <!-- Four-value checkbox group for comprehensive testing -->
+        <input type="checkbox" name="fourCheckboxGroup" value="1"/>
+        <input type="checkbox" name="fourCheckboxGroup" value="2"/>
+        <input type="checkbox" name="fourCheckboxGroup" value="3"/>
+        <input type="checkbox" name="fourCheckboxGroup" value="4"/>
         <input type="radio" name="radioGroup1" value="radio1"/>
         <input type="radio" name="radioGroup1" value="radio2"/>
         <input type="radio" name="radioGroup1" value="radio3"/>
@@ -235,6 +250,120 @@
             checkboxes.forEach(cb => assert.false(cb.checked));
         });
 
+        QUnit.test('Checkbox group (4 items) - even, odd, partial sequence patterns', function(assert) {
+            const boxes = container.querySelectorAll('[name="fourCheckboxGroup"]');
+            assert.equal(boxes.length, 4, 'fixture has 4 checkboxes');
+
+            // Pattern 1: All even (2, 4)
+            FormPopulator.populate(container, {fourCheckboxGroup:  ['2', '4']});
+            assert.false(boxes[0].checked, 'Pattern EVEN: value 1 unchecked');
+            assert.true(boxes[1].checked, 'Pattern EVEN: value 2 checked');
+            assert.false(boxes[2].checked, 'Pattern EVEN: value 3 unchecked');
+            assert.true(boxes[3].checked, 'Pattern EVEN: value 4 checked');
+
+            // Pattern 2: All odd (1, 3) - should UNCHECK 2 and 4
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '3']});
+            assert.true(boxes[0].checked, 'Pattern ODD: value 1 checked');
+            assert.false(boxes[1].checked, 'Pattern ODD: value 2 UNCHECKED (was checked)');
+            assert.true(boxes[2].checked, 'Pattern ODD: value 3 checked');
+            assert.false(boxes[3].checked, 'Pattern ODD: value 4 UNCHECKED (was checked)');
+
+            // Pattern 3: First two (1, 2) - should UNCHECK 3
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '2']});
+            assert.true(boxes[0]. checked, 'Pattern 1,2: value 1 checked');
+            assert.true(boxes[1].checked, 'Pattern 1,2: value 2 checked');
+            assert.false(boxes[2].checked, 'Pattern 1,2: value 3 UNCHECKED (was checked)');
+            assert.false(boxes[3].checked, 'Pattern 1,2: value 4 unchecked');
+
+            // Pattern 4: Middle two (2, 3) - should UNCHECK 1
+            FormPopulator.populate(container, {fourCheckboxGroup: ['2', '3']});
+            assert.false(boxes[0].checked, 'Pattern 2,3: value 1 UNCHECKED (was checked)');
+            assert.true(boxes[1].checked, 'Pattern 2,3: value 2 still checked');
+            assert.true(boxes[2].checked, 'Pattern 2,3: value 3 checked');
+            assert.false(boxes[3].checked, 'Pattern 2,3: value 4 unchecked');
+
+            // Pattern 5: All four
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '2', '3', '4']});
+            assert.true(boxes[0].checked, 'Pattern ALL: value 1 checked');
+            assert.true(boxes[1].checked, 'Pattern ALL:  value 2 checked');
+            assert.true(boxes[2]. checked, 'Pattern ALL: value 3 checked');
+            assert.true(boxes[3].checked, 'Pattern ALL: value 4 checked');
+
+            // Pattern 6: Clear all with empty array
+            FormPopulator. populate(container, {fourCheckboxGroup: []});
+            assert.false(boxes[0].checked, 'Pattern CLEAR: all unchecked');
+            assert.false(boxes[1].checked, 'Pattern CLEAR: all unchecked');
+            assert.false(boxes[2].checked, 'Pattern CLEAR: all unchecked');
+            assert.false(boxes[3].checked, 'Pattern CLEAR: all unchecked');
+
+            // Pattern 7: Single value (as string, not array)
+            FormPopulator.populate(container, {fourCheckboxGroup: '3'});
+            assert.false(boxes[0].checked, 'Pattern SINGLE: value 1 unchecked');
+            assert.false(boxes[1].checked, 'Pattern SINGLE: value 2 unchecked');
+            assert.true(boxes[2].checked, 'Pattern SINGLE: value 3 checked');
+            assert.false(boxes[3].checked, 'Pattern SINGLE: value 4 unchecked');
+        });
+
+        QUnit.test('Checkbox group - numeric vs string value matching', function(assert) {
+            const boxes = container.querySelectorAll('[name="fourCheckboxGroup"]');
+
+            // HTML values are always strings:  "1", "2", "3", "4"
+            // But developers might pass numbers
+
+            // Pass numbers (not strings)
+            FormPopulator.populate(container, {fourCheckboxGroup: [2, 4]});
+            assert.false(boxes[0].checked, 'Number 2 matches string "2"');
+            assert.true(boxes[1].checked, 'Number 2 matches string "2"');
+            assert.false(boxes[2].checked, 'Number 4 matches string "4"');
+            assert.true(boxes[3].checked, 'Number 4 matches string "4"');
+
+            // Mix numbers and strings
+            FormPopulator. populate(container, {fourCheckboxGroup: [1, '3']});
+            assert.true(boxes[0].checked, 'Number 1 matches string "1"');
+            assert.false(boxes[1].checked, 'unchecked');
+            assert.true(boxes[2].checked, 'String "3" matches string "3"');
+            assert.false(boxes[3].checked, 'unchecked');
+
+            // Edge case: 0 and false
+            // (This test requires checkboxes with value="0" and value="false")
+        });
+        QUnit.test('Checkbox group with attributes on each populate call', function(assert) {
+            const boxes = container.querySelectorAll('[name="fourCheckboxGroup"]');
+
+            const attrs = {
+                fourCheckboxGroup: {
+                    'data-round': '1',
+                    'class': 'highlight'
+                }
+            };
+
+            FormPopulator.populate(container, {fourCheckboxGroup: ['2', '4']}, attrs);
+
+            // All checkboxes in the group should get attributes
+            boxes.forEach((box, i) => {
+                assert.equal(box.dataset.round, '1', `Checkbox ${i+1} has data-round`);
+                assert.true(box.classList.contains('highlight'), `Checkbox ${i+1} has class`);
+            });
+
+            // Verify checked state
+            assert.true(boxes[1].checked, 'value 2 checked');
+            assert.true(boxes[3].checked, 'value 4 checked');
+
+            // Change attributes in next populate
+            const attrs2 = {
+                fourCheckboxGroup: {
+                    'data-round': '2',
+                    'class': 'selected'
+                }
+            };
+
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '3']}, attrs2);
+
+            boxes.forEach((box, i) => {
+                assert.equal(box.dataset.round, '2', `Checkbox ${i+1} updated data-round`);
+                assert.true(box.classList.contains('selected'), `Checkbox ${i+1} updated class`);
+            });
+        });
         QUnit.test('Radio button group population', function(assert) {
             FormPopulator.populate(container, {radioGroup1: 'radio2', radioGroup2: 'groupB1'});
             const group1 = container.querySelectorAll('[name="radioGroup1"]');
@@ -562,6 +691,213 @@
             els[1].value = 'v2';
             const values = FormPopulator.getValues(container, ['repeatedText']);
             assert.deepEqual(values.repeatedText, ['v1', 'v2'], 'extracted as array in DOM order');
+        });
+
+        QUnit.test('Repeated-name text inputs - sequential populations overwrite', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // First population:  array
+            FormPopulator.populate(container, {repeatedText: ['first', 'second']});
+            assert.equal(els[0].value, 'first', 'Round 1: first input');
+            assert.equal(els[1].value, 'second', 'Round 1: second input');
+
+            // Second population: single value (should set BOTH to same value)
+            FormPopulator.populate(container, {repeatedText: 'same'});
+            assert.equal(els[0].value, 'same', 'Round 2: first input same value');
+            assert.equal(els[1].value, 'same', 'Round 2: second input same value');
+
+            // Third population: different array
+            FormPopulator.populate(container, {repeatedText: ['alpha', 'beta']});
+            assert.equal(els[0]. value, 'alpha', 'Round 3: first input overwritten');
+            assert.equal(els[1].value, 'beta', 'Round 3: second input overwritten');
+
+            // Fourth population: null (should clear both)
+            FormPopulator.populate(container, {repeatedText: null});
+            assert.equal(els[0].value, '', 'Round 4: first input cleared');
+            assert.equal(els[1].value, '', 'Round 4: second input cleared');
+        });
+
+        QUnit.test('Repeated-name text inputs - array longer than inputs', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+            assert.equal(els.length, 2, 'only 2 inputs in fixture');
+
+            // Array with 5 values, but only 2 inputs
+            FormPopulator.populate(container, {repeatedText: ['v1', 'v2', 'v3', 'v4', 'v5']});
+            assert.equal(els[0].value, 'v1', 'first input gets first value');
+            assert.equal(els[1].value, 'v2', 'second input gets second value');
+            // v3, v4, v5 are ignored (no more inputs to populate)
+        });
+
+        QUnit.test('Repeated-name text inputs - null and undefined handling', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // Pre-populate
+            FormPopulator.populate(container, {repeatedText: ['old1', 'old2']});
+
+            // null clears all
+            FormPopulator.populate(container, {repeatedText: null});
+            assert.equal(els[0].value, '', 'null clears first');
+            assert.equal(els[1].value, '', 'null clears second');
+
+            // Re-populate
+            FormPopulator.populate(container, {repeatedText: ['new1', 'new2']});
+
+            // undefined clears all
+            FormPopulator.populate(container, {repeatedText: undefined});
+            assert.equal(els[0].value, '', 'undefined clears first');
+            assert.equal(els[1].value, '', 'undefined clears second');
+        });
+
+        QUnit.test('Repeated-name text inputs - with attributes', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            const attrs = {
+                repeatedText:  {
+                    'data-validated': 'true',
+                    'class': 'form-control',
+                    'placeholder': 'Enter value'
+                }
+            };
+
+            FormPopulator.populate(container, {repeatedText:  ['a', 'b']}, attrs);
+
+            // Both inputs should get attributes
+            assert.equal(els[0].value, 'a', 'first value set');
+            assert.equal(els[0].dataset.validated, 'true', 'first input data-validated');
+            assert.true(els[0].classList.contains('form-control'), 'first input has class');
+            assert.equal(els[0].placeholder, 'Enter value', 'first input placeholder');
+
+            assert.equal(els[1]. value, 'b', 'second value set');
+            assert.equal(els[1].dataset. validated, 'true', 'second input data-validated');
+            assert.true(els[1]. classList.contains('form-control'), 'second input has class');
+            assert.equal(els[1].placeholder, 'Enter value', 'second input placeholder');
+        });
+
+        QUnit.test('Repeated-name text inputs - empty string vs empty array', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // Empty string:  should set BOTH to empty string
+            FormPopulator.populate(container, {repeatedText: ''});
+            assert.equal(els[0].value, '', 'empty string clears first');
+            assert.equal(els[1].value, '', 'empty string clears second');
+
+            // Empty array:  should clear BOTH
+            FormPopulator.populate(container, {repeatedText:  ['x', 'y']});
+            FormPopulator.populate(container, {repeatedText: []});
+            assert.equal(els[0]. value, '', 'empty array clears first');
+            assert.equal(els[1].value, '', 'empty array clears second');
+        });
+
+        QUnit.test('Repeated-name text inputs - numeric values', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // Pass numbers (should convert to strings)
+            FormPopulator.populate(container, {repeatedText: [123, 456]});
+            assert.equal(els[0].value, '123', 'number converted to string');
+            assert.equal(els[1].value, '456', 'number converted to string');
+
+            // Pass single number
+            FormPopulator.populate(container, {repeatedText: 999});
+            assert.equal(els[0].value, '999', 'single number sets first');
+            assert.equal(els[1].value, '999', 'single number sets second');
+        });
+
+        QUnit.test('Three repeated-name text inputs - full coverage', function(assert) {
+            const els = container.querySelectorAll('[name="tripleText"]');
+            assert.equal(els.length, 3, 'fixture has 3 tripleText inputs');
+
+            // Array with 3 values
+            FormPopulator.populate(container, {tripleText: ['a', 'b', 'c']});
+            assert.equal(els[0].value, 'a', 'first');
+            assert.equal(els[1].value, 'b', 'second');
+            assert.equal(els[2].value, 'c', 'third');
+
+            // Array with 2 values (third gets empty)
+            FormPopulator.populate(container, {tripleText: ['x', 'y']});
+            assert.equal(els[0].value, 'x', 'first');
+            assert.equal(els[1].value, 'y', 'second');
+            assert.equal(els[2].value, '', 'third gets empty string');
+
+            // Single value (all get same)
+            FormPopulator.populate(container, {tripleText: 'same'});
+            assert.equal(els[0].value, 'same', 'first gets same');
+            assert.equal(els[1].value, 'same', 'second gets same');
+            assert.equal(els[2].value, 'same', 'third gets same');
+
+            // Extract as array
+            els[0].value = 'v1';
+            els[1]. value = 'v2';
+            els[2].value = 'v3';
+            const values = FormPopulator.getValues(container, ['tripleText']);
+            assert.deepEqual(values.tripleText, ['v1', 'v2', 'v3'], 'extracts all 3 as array');
+        });
+
+        QUnit.test('Four repeated-name email inputs - patterns', function(assert) {
+            const els = container.querySelectorAll('[name="quadEmail"]');
+            assert.equal(els. length, 4, 'fixture has 4 quadEmail inputs');
+
+            // Populate with 4 emails
+            const emails = ['a@test.com', 'b@test.com', 'c@test.com', 'd@test. com'];
+            FormPopulator. populate(container, {quadEmail:  emails});
+
+            emails.forEach((email, i) => {
+                assert.equal(els[i].value, email, `input ${i+1} has correct email`);
+            });
+
+            // Extract
+            const values = FormPopulator.getValues(container, ['quadEmail']);
+            assert.deepEqual(values. quadEmail, emails, 'extracts all 4 emails');
+
+            // Populate with 2 (others should be empty)
+            FormPopulator.populate(container, {quadEmail: ['x@test.com', 'y@test.com']});
+            assert.equal(els[0].value, 'x@test.com', 'first email');
+            assert.equal(els[1].value, 'y@test.com', 'second email');
+            assert.equal(els[2].value, '', 'third empty');
+            assert.equal(els[3].value, '', 'fourth empty');
+        });
+
+        QUnit.test('Repeated-name inputs extraction - one empty, one filled', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // First filled, second empty
+            els[0].value = 'filled';
+            els[1].value = '';
+
+            const values = FormPopulator. getValues(container, ['repeatedText']);
+            assert.deepEqual(values.repeatedText, ['filled', ''], 'extracts both, including empty string');
+        });
+
+        QUnit.test('Repeated-name inputs extraction - all empty', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            els[0].value = '';
+            els[1].value = '';
+
+            const values = FormPopulator.getValues(container, ['repeatedText']);
+            assert.deepEqual(values.repeatedText, ['', ''], 'extracts array of empty strings');
+        });
+
+        QUnit.test('Repeated-name with mixed input types (edge case)', function(assert) {
+            // Create mixed types with same name
+            const container2 = document.createElement('div');
+            container2.innerHTML = `
+        <input type="text" name="mixed" value=""/>
+        <input type="email" name="mixed" value=""/>
+        <input type="tel" name="mixed" value=""/>
+    `;
+            document.body.appendChild(container2);
+
+            FormPopulator.populate(container2, {mixed: ['text val', 'email@test.com', '123-456']});
+
+            const els = container2.querySelectorAll('[name="mixed"]');
+            assert.equal(els[0].value, 'text val', 'text input populated');
+            assert.equal(els[1].value, 'email@test.com', 'email input populated');
+            assert.equal(els[2].value, '123-456', 'tel input populated');
+
+            const values = FormPopulator.getValues(container2, ['mixed']);
+            assert.deepEqual(values. mixed, ['text val', 'email@test.com', '123-456'], 'extracts all types');
+
+            document. body.removeChild(container2);
         });
 
         QUnit.test('Special-character keys resolve by name then by id (CSS.escape)', function(assert) {
@@ -893,6 +1229,364 @@
             const values = FormPopulator.getValues(container, ['singleRadio']);
             assert.true('singleRadio' in values, 'key is present');
             assert.equal(values.singleRadio, '', 'returns empty string for unchecked single radio');
+        });
+
+
+        // ============================================================
+// MISSING TESTS - Checkbox Sequential Populations
+// ============================================================
+
+        QUnit.test('Checkbox group - sequential population clears previous selections', function(assert) {
+            const checkboxes = container.querySelectorAll('[name="checkboxGroup"]');
+            // checkboxGroup has values: option1, option2, option3
+
+            // Initial:  Check all
+            FormPopulator.populate(container, {checkboxGroup: ['option1', 'option2', 'option3']});
+            assert.true(checkboxes[0].checked, 'Round 1: option1 checked');
+            assert.true(checkboxes[1].checked, 'Round 1: option2 checked');
+            assert.true(checkboxes[2].checked, 'Round 1: option3 checked');
+
+            // Round 2: Check only option1 - should UNCHECK option2 and option3
+            FormPopulator.populate(container, {checkboxGroup: ['option1']});
+            assert.true(checkboxes[0].checked, 'Round 2: option1 still checked');
+            assert.false(checkboxes[1].checked, 'Round 2: option2 UNCHECKED');
+            assert.false(checkboxes[2]. checked, 'Round 2: option3 UNCHECKED');
+
+            // Round 3: Check option2 and option3 - should UNCHECK option1
+            FormPopulator.populate(container, {checkboxGroup: ['option2', 'option3']});
+            assert.false(checkboxes[0].checked, 'Round 3: option1 UNCHECKED');
+            assert.true(checkboxes[1].checked, 'Round 3: option2 checked');
+            assert.true(checkboxes[2].checked, 'Round 3: option3 checked');
+
+            // Round 4: Empty array - should UNCHECK all
+            FormPopulator.populate(container, {checkboxGroup: []});
+            assert.false(checkboxes[0]. checked, 'Round 4: all unchecked');
+            assert.false(checkboxes[1].checked, 'Round 4: all unchecked');
+            assert.false(checkboxes[2]. checked, 'Round 4: all unchecked');
+        });
+
+        QUnit.test('Checkbox group (4 items) - even, odd, partial sequence patterns', function(assert) {
+            const boxes = container.querySelectorAll('[name="fourCheckboxGroup"]');
+            assert.equal(boxes.length, 4, 'fixture has 4 checkboxes');
+
+            // Pattern 1: All even (2, 4)
+            FormPopulator.populate(container, {fourCheckboxGroup:  ['2', '4']});
+            assert.false(boxes[0].checked, 'Pattern EVEN: value 1 unchecked');
+            assert.true(boxes[1].checked, 'Pattern EVEN: value 2 checked');
+            assert.false(boxes[2].checked, 'Pattern EVEN: value 3 unchecked');
+            assert.true(boxes[3].checked, 'Pattern EVEN: value 4 checked');
+
+            // Pattern 2: All odd (1, 3) - should UNCHECK 2 and 4
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '3']});
+            assert.true(boxes[0].checked, 'Pattern ODD: value 1 checked');
+            assert.false(boxes[1].checked, 'Pattern ODD: value 2 UNCHECKED (was checked)');
+            assert.true(boxes[2].checked, 'Pattern ODD: value 3 checked');
+            assert.false(boxes[3].checked, 'Pattern ODD: value 4 UNCHECKED (was checked)');
+
+            // Pattern 3: First two (1, 2) - should UNCHECK 3
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '2']});
+            assert.true(boxes[0]. checked, 'Pattern 1,2: value 1 checked');
+            assert.true(boxes[1].checked, 'Pattern 1,2: value 2 checked');
+            assert.false(boxes[2].checked, 'Pattern 1,2: value 3 UNCHECKED (was checked)');
+            assert.false(boxes[3].checked, 'Pattern 1,2: value 4 unchecked');
+
+            // Pattern 4: Middle two (2, 3) - should UNCHECK 1
+            FormPopulator.populate(container, {fourCheckboxGroup: ['2', '3']});
+            assert.false(boxes[0].checked, 'Pattern 2,3: value 1 UNCHECKED (was checked)');
+            assert.true(boxes[1].checked, 'Pattern 2,3: value 2 still checked');
+            assert.true(boxes[2].checked, 'Pattern 2,3: value 3 checked');
+            assert.false(boxes[3].checked, 'Pattern 2,3: value 4 unchecked');
+
+            // Pattern 5: All four
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '2', '3', '4']});
+            assert.true(boxes[0].checked, 'Pattern ALL: value 1 checked');
+            assert.true(boxes[1].checked, 'Pattern ALL:  value 2 checked');
+            assert.true(boxes[2]. checked, 'Pattern ALL: value 3 checked');
+            assert.true(boxes[3].checked, 'Pattern ALL: value 4 checked');
+
+            // Pattern 6: Clear all with empty array
+            FormPopulator.populate(container, {fourCheckboxGroup: []});
+            assert.false(boxes[0].checked, 'Pattern CLEAR: all unchecked');
+            assert.false(boxes[1].checked, 'Pattern CLEAR: all unchecked');
+            assert.false(boxes[2].checked, 'Pattern CLEAR: all unchecked');
+            assert.false(boxes[3].checked, 'Pattern CLEAR: all unchecked');
+
+            // Pattern 7: Single value (as string, not array)
+            FormPopulator.populate(container, {fourCheckboxGroup: '3'});
+            assert.false(boxes[0].checked, 'Pattern SINGLE: value 1 unchecked');
+            assert.false(boxes[1].checked, 'Pattern SINGLE: value 2 unchecked');
+            assert.true(boxes[2].checked, 'Pattern SINGLE: value 3 checked');
+            assert.false(boxes[3].checked, 'Pattern SINGLE: value 4 unchecked');
+        });
+
+        QUnit.test('Checkbox group - numeric vs string value matching', function(assert) {
+            const boxes = container.querySelectorAll('[name="fourCheckboxGroup"]');
+
+            // HTML values are always strings:  "1", "2", "3", "4"
+            // But developers might pass numbers
+
+            // Pass numbers (not strings)
+            FormPopulator.populate(container, {fourCheckboxGroup: [2, 4]});
+            assert.false(boxes[0].checked, 'value 1 unchecked');
+            assert.true(boxes[1].checked, 'Number 2 matches string "2"');
+            assert.false(boxes[2].checked, 'value 3 unchecked');
+            assert.true(boxes[3].checked, 'Number 4 matches string "4"');
+
+            // Mix numbers and strings
+            FormPopulator. populate(container, {fourCheckboxGroup: [1, '3']});
+            assert.true(boxes[0].checked, 'Number 1 matches string "1"');
+            assert.false(boxes[1].checked, 'unchecked');
+            assert.true(boxes[2].checked, 'String "3" matches string "3"');
+            assert.false(boxes[3].checked, 'unchecked');
+        });
+
+        QUnit.test('Checkbox group with attributes on each populate call', function(assert) {
+            const boxes = container.querySelectorAll('[name="fourCheckboxGroup"]');
+
+            const attrs = {
+                fourCheckboxGroup: {
+                    'data-round': '1',
+                    'class': 'highlight'
+                }
+            };
+
+            FormPopulator.populate(container, {fourCheckboxGroup: ['2', '4']}, attrs);
+
+            // All checkboxes in the group should get attributes
+            boxes.forEach((box, i) => {
+                assert.equal(box.dataset.round, '1', `Checkbox ${i+1} has data-round`);
+                assert.true(box.classList.contains('highlight'), `Checkbox ${i+1} has class`);
+            });
+
+            // Verify checked state
+            assert.true(boxes[1].checked, 'value 2 checked');
+            assert.true(boxes[3].checked, 'value 4 checked');
+
+            // Change attributes in next populate
+            const attrs2 = {
+                fourCheckboxGroup: {
+                    'data-round': '2',
+                    'class': 'selected'
+                }
+            };
+
+            FormPopulator.populate(container, {fourCheckboxGroup: ['1', '3']}, attrs2);
+
+            boxes.forEach((box, i) => {
+                assert.equal(box.dataset.round, '2', `Checkbox ${i+1} updated data-round`);
+                assert.true(box.classList.contains('selected'), `Checkbox ${i+1} updated class`);
+            });
+        });
+
+// ============================================================
+// MISSING TESTS - Repeated-Name Text Inputs
+// ============================================================
+
+        QUnit.test('Repeated-name text inputs - sequential populations overwrite', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // First population: array
+            FormPopulator.populate(container, {repeatedText: ['first', 'second']});
+            assert.equal(els[0]. value, 'first', 'Round 1: first input');
+            assert.equal(els[1].value, 'second', 'Round 1: second input');
+
+            // Second population: single value (should set BOTH to same value)
+            FormPopulator.populate(container, {repeatedText: 'same'});
+            assert.equal(els[0].value, 'same', 'Round 2: first input same value');
+            assert.equal(els[1].value, 'same', 'Round 2: second input same value');
+
+            // Third population: different array
+            FormPopulator.populate(container, {repeatedText: ['alpha', 'beta']});
+            assert.equal(els[0]. value, 'alpha', 'Round 3: first input overwritten');
+            assert.equal(els[1].value, 'beta', 'Round 3: second input overwritten');
+
+            // Fourth population: null (should clear both)
+            FormPopulator.populate(container, {repeatedText: null});
+            assert.equal(els[0].value, '', 'Round 4: first input cleared');
+            assert.equal(els[1].value, '', 'Round 4: second input cleared');
+        });
+
+        QUnit.test('Repeated-name text inputs - array longer than inputs', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+            assert.equal(els.length, 2, 'only 2 inputs in fixture');
+
+            // Array with 5 values, but only 2 inputs
+            FormPopulator.populate(container, {repeatedText: ['v1', 'v2', 'v3', 'v4', 'v5']});
+            assert.equal(els[0].value, 'v1', 'first input gets first value');
+            assert.equal(els[1].value, 'v2', 'second input gets second value');
+            // v3, v4, v5 are ignored (no more inputs to populate)
+        });
+
+        QUnit.test('Repeated-name text inputs - null and undefined handling', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // Pre-populate
+            FormPopulator.populate(container, {repeatedText: ['old1', 'old2']});
+
+            // null clears all
+            FormPopulator.populate(container, {repeatedText: null});
+            assert.equal(els[0]. value, '', 'null clears first');
+            assert.equal(els[1].value, '', 'null clears second');
+
+            // Re-populate
+            FormPopulator.populate(container, {repeatedText: ['new1', 'new2']});
+
+            // undefined clears all
+            FormPopulator. populate(container, {repeatedText: undefined});
+            assert.equal(els[0].value, '', 'undefined clears first');
+            assert.equal(els[1].value, '', 'undefined clears second');
+        });
+
+        QUnit.test('Repeated-name text inputs - with attributes', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            const attrs = {
+                repeatedText:  {
+                    'data-validated':  'true',
+                    'class': 'form-control',
+                    'placeholder': 'Enter value'
+                }
+            };
+
+            FormPopulator.populate(container, {repeatedText:  ['a', 'b']}, attrs);
+
+            // Both inputs should get attributes
+            assert.equal(els[0].value, 'a', 'first value set');
+            assert.equal(els[0].dataset.validated, 'true', 'first input data-validated');
+            assert.true(els[0].classList.contains('form-control'), 'first input has class');
+            assert.equal(els[0].placeholder, 'Enter value', 'first input placeholder');
+
+            assert.equal(els[1]. value, 'b', 'second value set');
+            assert.equal(els[1].dataset. validated, 'true', 'second input data-validated');
+            assert.true(els[1]. classList.contains('form-control'), 'second input has class');
+            assert.equal(els[1].placeholder, 'Enter value', 'second input placeholder');
+        });
+
+        QUnit.test('Repeated-name text inputs - empty string vs empty array', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // Empty string:  should set BOTH to empty string
+            FormPopulator.populate(container, {repeatedText: ''});
+            assert.equal(els[0].value, '', 'empty string clears first');
+            assert.equal(els[1].value, '', 'empty string clears second');
+
+            // Empty array:  should clear BOTH
+            FormPopulator.populate(container, {repeatedText: ['x', 'y']});
+            FormPopulator.populate(container, {repeatedText: []});
+            assert.equal(els[0]. value, '', 'empty array clears first');
+            assert.equal(els[1].value, '', 'empty array clears second');
+        });
+
+        QUnit.test('Repeated-name text inputs - numeric values', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // Pass numbers (should convert to strings)
+            FormPopulator.populate(container, {repeatedText: [123, 456]});
+            assert.equal(els[0].value, '123', 'number converted to string');
+            assert.equal(els[1].value, '456', 'number converted to string');
+
+            // Pass single number
+            FormPopulator.populate(container, {repeatedText:  999});
+            assert.equal(els[0].value, '999', 'single number sets first');
+            assert.equal(els[1].value, '999', 'single number sets second');
+        });
+
+        QUnit.test('Three repeated-name text inputs - full coverage', function(assert) {
+            const els = container.querySelectorAll('[name="tripleText"]');
+            assert.equal(els.length, 3, 'fixture has 3 tripleText inputs');
+
+            // Array with 3 values
+            FormPopulator.populate(container, {tripleText: ['a', 'b', 'c']});
+            assert.equal(els[0].value, 'a', 'first');
+            assert.equal(els[1].value, 'b', 'second');
+            assert.equal(els[2].value, 'c', 'third');
+
+            // Array with 2 values (third gets empty)
+            FormPopulator.populate(container, {tripleText:  ['x', 'y']});
+            assert.equal(els[0].value, 'x', 'first');
+            assert.equal(els[1].value, 'y', 'second');
+            assert.equal(els[2].value, '', 'third gets empty string');
+
+            // Single value (all get same)
+            FormPopulator.populate(container, {tripleText: 'same'});
+            assert.equal(els[0].value, 'same', 'first gets same');
+            assert.equal(els[1].value, 'same', 'second gets same');
+            assert.equal(els[2]. value, 'same', 'third gets same');
+
+            // Extract as array
+            els[0].value = 'v1';
+            els[1]. value = 'v2';
+            els[2].value = 'v3';
+            const values = FormPopulator.getValues(container, ['tripleText']);
+            assert.deepEqual(values. tripleText, ['v1', 'v2', 'v3'], 'extracts all 3 as array');
+        });
+
+        QUnit.test('Four repeated-name email inputs - patterns', function(assert) {
+            const els = container.querySelectorAll('[name="quadEmail"]');
+            assert.equal(els.length, 4, 'fixture has 4 quadEmail inputs');
+
+            // Populate with 4 emails
+            const emails = ['a@test.com', 'b@test.com', 'c@test.com', 'd@test.com'];
+            FormPopulator.populate(container, {quadEmail: emails});
+
+            emails.forEach((email, i) => {
+                assert.equal(els[i].value, email, `input ${i+1} has correct email`);
+            });
+
+            // Extract
+            const values = FormPopulator.getValues(container, ['quadEmail']);
+            assert.deepEqual(values. quadEmail, emails, 'extracts all 4 emails');
+
+            // Populate with 2 (others should be empty)
+            FormPopulator.populate(container, {quadEmail: ['x@test.com', 'y@test.com']});
+            assert.equal(els[0].value, 'x@test.com', 'first email');
+            assert.equal(els[1].value, 'y@test.com', 'second email');
+            assert.equal(els[2].value, '', 'third empty');
+            assert.equal(els[3].value, '', 'fourth empty');
+        });
+
+        QUnit.test('Repeated-name inputs extraction - one empty, one filled', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            // First filled, second empty
+            els[0].value = 'filled';
+            els[1].value = '';
+
+            const values = FormPopulator. getValues(container, ['repeatedText']);
+            assert.deepEqual(values.repeatedText, ['filled', ''], 'extracts both, including empty string');
+        });
+
+        QUnit.test('Repeated-name inputs extraction - all empty', function(assert) {
+            const els = container.querySelectorAll('[name="repeatedText"]');
+
+            els[0].value = '';
+            els[1].value = '';
+
+            const values = FormPopulator.getValues(container, ['repeatedText']);
+            assert.deepEqual(values.repeatedText, ['', ''], 'extracts array of empty strings');
+        });
+
+        QUnit.test('Repeated-name with mixed input types (edge case)', function(assert) {
+            // Create mixed types with same name
+            const container2 = document.createElement('div');
+            container2.innerHTML = `
+        <input type="text" name="mixed" value=""/>
+        <input type="email" name="mixed" value=""/>
+        <input type="tel" name="mixed" value=""/>
+    `;
+            document.body.appendChild(container2);
+
+            FormPopulator.populate(container2, {mixed: ['text val', 'email@test.com', '123-456']});
+
+            const els = container2.querySelectorAll('[name="mixed"]');
+            assert.equal(els[0].value, 'text val', 'text input populated');
+            assert.equal(els[1].value, 'email@test.com', 'email input populated');
+            assert.equal(els[2].value, '123-456', 'tel input populated');
+
+            const values = FormPopulator.getValues(container2, ['mixed']);
+            assert.deepEqual(values. mixed, ['text val', 'email@test.com', '123-456'], 'extracts all types');
+
+            document. body.removeChild(container2);
         });
     });
 </script>
