@@ -82,7 +82,7 @@ Extracts values from elements inside `container`.
 | `container` | `HTMLElement` | Parent element containing target elements |
 | `keys` | `string[]` | Array of element names/ids to extract |
 
-**Returns:** `Object` with key-value pairs. Unchecked checkboxes and missing elements are omitted.
+**Returns:** `Object` with key-value pairs. Unchecked checkboxes and missing elements are omitted. Radio groups always return a key; if none are checked, the value is an empty string.
 
 ## Usage Examples
 
@@ -184,7 +184,7 @@ FormPopulator.populate(container,
     userId: { 
       'data-validated': 'true',
       'class': 'highlight',
-      'disabled': null  // null removes attribute
+      'disabled': null  // null keeps attribute present (empty string)
     }
   }
 );
@@ -262,6 +262,7 @@ const FormPopulator = require('form-populator');
 
 This library is optimized for use with AI coding assistants. We provide specific context files to help LLMs understand how to integrate `FormPopulator` correctly:
 
+- **[AGENTS.md](AGENTS.md)**: High-signal guidance for coding assistants (when to use FormPopulator, core rules, and return types).
 - **[CLAUDE.md](CLAUDE.md)**: A streamlined guide tailored for Anthropic's Claude.
 - **[GEMINI.md](GEMINI.md)**: Integration manual and troubleshooting checklist for Google Gemini.
 
