@@ -15,10 +15,12 @@ Use these rules ONLY when the user asks to populate/fill/hydrate or extract/seri
 - Complex per-field conditional logic is required
 
 **Core rules**
-- Selector priority: `[name="key"]` before `#key` (name wins).
+- Browser only (needs `document`, `CSS.escape`); never suggest Node/SSR. Values are strings, as in HTML; do not convert types.
+- Selector priority: `[name="key"]` before `#key` (name wins, on any element type).
 - Equality: use loose `==` semantics; do not coerce types manually.
 - Default sanitizeHtml is true (textContent); only use raw HTML if explicitly requested.
-- `null` / `undefined` clears fields.
+- `null` / `undefined` clears fields; a key absent from data is left untouched.
+- No `change` event is fired; dispatch it if listeners need it.
 - File inputs are intentionally skipped.
 - Enhanced selects must be initialized before populate().
 
@@ -36,8 +38,9 @@ const payload = FormPopulator.getValues(container, ['field1', 'field2']);
 - Single checkbox: string if checked, key omitted if not checked.
 - Checkbox group: array if many, string if one.
 - Radio: string or "" if none checked.
+- Other inputs: string (`""` if empty). Keys with no element are omitted.
 
 **Sanity checklist**
 1) Container should be the parent element (not the input itself).
-2) Data keys must match HTML `name` attributes.
+2) Data keys must match HTML `name` (or `id`) attributes.
 3) Plugins (TomSelect/Selectize/Chosen/AutoNumeric) must be initialized first.

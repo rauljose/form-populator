@@ -3,10 +3,16 @@
 /**
  * FormPopulator.js Set/get values by name or id inside an HTML container
  *
- * @version 1.2.4
+ * @version 1.2.5
  * @description Stateless utility for populating and extracting values from HTML elements based on name (primary) or id (fallback).
  *
- * Supports TomSelect, Selectize, and Chosen.
+ * BROWSER ONLY: requires `document` and `CSS.escape`. Not supported in Node/SSR.
+ * Values are strings, as in HTML: data is written as given and read back as strings.
+ *
+ * Supports TomSelect, Selectize, Chosen and AutoNumeric.
+ * AutoNumeric must be available as the global `AutoNumeric` (e.g. loaded with a <script> tag).
+ * Enhanced selects are updated silently: no `change` event is fired.
+ * Native inputs/selects do not fire `change` either; dispatch it yourself if listeners need it.
  */
 
 const FormPopulator = {
@@ -16,13 +22,18 @@ const FormPopulator = {
      *
      * @param {HTMLElement} container
      * @param {object} data
-     * @param {object} attributes
-     * @param {boolean} sanitizeHtml sets content with true: textContent, false: innerHTML
+     * @param {object} [attributes] per key attributes: undefined removes, null sets presence-only, other sets string value
+     * @param {boolean} [sanitizeHtml=true] sets content with true: textContent, false: innerHTML
+     *
+     * Notes:
+     * - A key missing from data leaves its element untouched; pass null/undefined (or [] for groups) to clear.
+     * - null/undefined/"" on img/video/audio/iframe sets src="", which some browsers resolve to the page URL.
      *
      * @throws {Error} If container is not a valid DOM element
      * @throws {Error} If data is null or not an object
      */
     populate(container, data = {}, attributes = {}, sanitizeHtml = true) {
+        attributes = attributes || {};
         if(!container || !container.nodeType) {
             throw new Error('Container must be a valid DOM element');
         }
@@ -32,7 +43,7 @@ const FormPopulator = {
         }
 
         for(let key in data) {
-            if(data.hasOwnProperty(key)) {
+            if(Object.hasOwn(data, key)) {
                 try {
                     const elements = this._findElementsByNameOrId(container, key);
                     if(elements.length === 0) {
@@ -41,11 +52,11 @@ const FormPopulator = {
                     }
 
                     const value = data[key];
-                    const hasAttributes = attributes.hasOwnProperty(key);
+                    const hasAttributes = Object.hasOwn(attributes, key);
 
                     if(elements.length > 1 || (elements[0] && (elements[0].type === 'radio' || elements[0].type === 'checkbox'))) {
                         const isRadio = elements[0].type === 'radio';
-                        const isCheckbox = elements[0]. type === 'checkbox';
+                        const isCheckbox = elements[0].type === 'checkbox';
                         const keyAttrs = hasAttributes ? attributes[key] : null;
 
                         if(isRadio) {
@@ -54,7 +65,7 @@ const FormPopulator = {
                                     this._uncheckRadio(elements[i], keyAttrs);
                                 }
                             } else {
-                                for(let i = 0; i < elements. length; i++) {
+                                for(let i = 0; i < elements.length; i++) {
                                     this._setRadioChecked(elements[i], value, keyAttrs);
                                 }
                             }
@@ -124,10 +135,10 @@ const FormPopulator = {
      * @private
      */
     _setCheckboxChecked(element, valuesToCheck, keyAttrs) {
-        // Use for loop instead of . some() to avoid closure
+        // Use for loop instead of .some() to avoid closure
         let isChecked = false;
         for(let i = 0; i < valuesToCheck.length; i++) {
-            if(valuesToCheck[i] == element. value) {
+            if(valuesToCheck[i] == element.value) {
                 isChecked = true;
                 break;
             }
@@ -150,7 +161,7 @@ const FormPopulator = {
      * @private
      */
     _populateIndexedElement(element, valuesToSet, fallbackValue, index, sanitizeHtml, keyAttrs) {
-        const v = valuesToSet ?  (valuesToSet[index] ??  '') : fallbackValue;
+        const v = valuesToSet ? (valuesToSet[index] ?? '') : fallbackValue;
         this._populateElement(element, v, sanitizeHtml);
         if(keyAttrs) {
             this._setElementAttributes(element, keyAttrs);
@@ -163,8 +174,13 @@ const FormPopulator = {
      * @param {array} keys
      * @returns {{}} keyed by key in keys with the value or content, an array if multiple name
      *
+     * Notes (same as an HTML form submit):
+     * - Checkbox (single or group): key omitted when none checked; string if one checked, array if several.
+     * - Radio group: key always present, "" when none checked.
+     * - Keys with no matching element are omitted.
+     *
      * @throws {Error} If container is not a valid DOM element
-     * @throws {Error} If data is null or not an object
+     * @throws {Error} If keys is not an array
      */
     getValues(container, keys = []) {
 
@@ -267,13 +283,8 @@ const FormPopulator = {
                 if (typeof AutoNumeric !== 'undefined') {
                     const an = AutoNumeric.getAutoNumericElement(element);
                     if (an) {
-                        // AutoNumeric expects number, string, or null
-                        // It handles formatting, validation, and clearing internally
-                        if (value === null || value === undefined) {
-                            an.set(""); // proper clear
-                        } else {
-                            an.set(value); // let AutoNumeric parse and format
-                        }
+                        // value is already normalized to "" above; "" clears, AutoNumeric parses and formats the rest
+                        an.set(value);
                         break;
                     }
                 }
@@ -473,29 +484,23 @@ const FormPopulator = {
     },
 
     /**
-     * Returns input value, handling checkbox/radio checked state and AutoNumeric.
+     * Returns input value, handling AutoNumeric.
      *
      * @param {HTMLElement} element
      * @returns {string|*|string}
      * @private
      */
     _extractInputValue(element) {
-        const type = element.type.toLowerCase();
-        switch(type) {
-            case 'checkbox':
-            case 'radio':
-                return element.checked ? element.value : "";
-            default:
-                // AutoNumeric: return clean numeric string (or "" if empty)
-                if (typeof AutoNumeric !== 'undefined') {
-                    const an = AutoNumeric.getAutoNumericElement(element);
-                    if (an) {
-                        const raw = an.getNumericString();
-                        return raw === null ? "" : raw;
-                    }
-                }
-                return element.value || "";
+        // Checkbox/radio never get here: getValues() handles them as groups
+        // AutoNumeric: return clean numeric string (or "" if empty)
+        if (typeof AutoNumeric !== 'undefined') {
+            const an = AutoNumeric.getAutoNumericElement(element);
+            if (an) {
+                const raw = an.getNumericString();
+                return raw === null ? "" : raw;
+            }
         }
+        return element.value || "";
     },
 
     /**
@@ -522,7 +527,7 @@ const FormPopulator = {
      */
     _setElementAttributes(element, attributes) {
         for(let attrName in attributes) {
-            if(attributes.hasOwnProperty(attrName)) {
+            if(Object.hasOwn(attributes, attrName)) {
                 const attrValue = attributes[attrName];
 
                 // Canonical attribute semantics used by tests/docs:
@@ -542,23 +547,6 @@ const FormPopulator = {
             }
         }
     },
-
-    /**
-     * Converts data-foo-bar to camelCase fooBar for dataset access.
-     *
-     * @param {string} dataName
-     * @returns {string}
-     * @private
-     */
-    _toDatasetKey(dataName) {
-        let key = dataName.toLowerCase();
-        if(key.startsWith("data-")) {
-            key = key.slice(5);
-        }
-        key = key.replace(/-([a-z0-9])/g, (_, chr) => chr.toUpperCase());
-        return key.replace(/[^a-zA-Z0-9_$]/g, "");
-    },
-
 
     /**
      * Escapes HTML

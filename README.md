@@ -3,18 +3,20 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-green.svg)](package.json)
 
-Lightweight vanilla JS utility for populating and extracting values from HTML forms and DOM elements. It uses object keys to match elements by name or id attributes, handling all form types and optionally the enhanced select libraries (tomSelect, Selectizer, Chosen) or autoNumeric.org automatically.
+Lightweight vanilla JS utility for populating and extracting values from HTML forms and DOM elements. It uses object keys to match elements by name or id attributes, handling all form types and optionally the enhanced select libraries (TomSelect, Selectize, Chosen) or autoNumeric.org automatically.
+
+**Browser only.** Requires `document` and `CSS.escape`; not supported in Node/SSR. Values are strings, as in HTML: set `3.14`, read back `"3.14"`.
 
 ## Features
 
 - **One-call population** — Pass a container and data object, done
 - **Bidirectional** — `populate()` to fill, `getValues()` to extract
-- **All form elements** — text, email, tel, number, date, checkbox, radio, select, textarea, file (readonly)
+- **All form elements** — text, email, tel, number, date, checkbox, radio, select, textarea, file inputs are skipped by design
 - **Enhanced selects** — Optional: TomSelect, Selectize, Chosen auto-detected and handled
 - **AutoNumeric** — Optional: Formatted currency/number inputs populated and extracted correctly
 - **DOM elements** — span, div, p, h1-h6, ul, ol (including nested lists), img, video, audio, iframe, a
 - **Attributes** — Set any attribute (including data-*) alongside values
-- **XSS-safe** — HTML sanitized by default (textContent), opt-in for innerHTML
+- **Escaped by default** — Content is set with `textContent`; opt-in `innerHTML` is the developer's responsibility. Values, URLs and attributes you pass are applied as given
 - **Lookup priority** — Finds elements by `name` first, falls back to `id`
 - **Loose equality** — Matches `1` to `"1"` (real form behavior)
 - **Zero dependencies** — Pure vanilla JavaScript, works everywhere
@@ -82,7 +84,18 @@ Extracts values from elements inside `container`.
 | `container` | `HTMLElement` | Parent element containing target elements |
 | `keys` | `string[]` | Array of element names/ids to extract |
 
-**Returns:** `Object` with key-value pairs. Unchecked checkboxes and missing elements are omitted. Radio groups always return a key; if none are checked, the value is an empty string.
+**Returns:** `Object` with key-value pairs. Unchecked checkboxes and missing elements are omitted (like an HTML form submit). Radio groups always return a key; if none are checked, the value is an empty string.
+
+### Behavior notes
+
+- **Missing key vs. clearing:** a key absent from `data` leaves its element untouched. To clear, pass `null`/`undefined` (or `[]` for checkbox groups and multi-selects). On read, an absent key means "not checked".
+- **Strings only:** HTML values are strings. Loose equality (`==`) is used only to *match* (`3` matches `"3"`); nothing is converted on write or read.
+- **No events:** populating does not fire `change`/`input`. Enhanced selects (TomSelect/Selectize/Chosen) are updated silently. Dispatch the event yourself if listeners need it.
+- **Empty media `src`:** `null`/`undefined`/`""` on `img`, `video`, `audio`, `iframe` sets `src=""`, which some browsers resolve to the current page URL.
+- **Enhanced selects must be initialized** (with their options loaded) before `populate()`. Values with no matching option are dropped.
+- **AutoNumeric** must be available as the global `AutoNumeric` (e.g. a `<script>` tag).
+- **Developer responsibility:** what you pass (HTML with `sanitizeHtml=false`, `src`/`href` URLs, attributes, checkbox/radio values) is applied as given.
+- **Name match wins:** any element with a matching `name` (button, etc.) is populated before `id` is tried.
 
 ## Usage Examples
 
@@ -247,17 +260,12 @@ When both exist with same key, **name wins**:
 
 ## Browser Support
 
-Works in all modern browsers (Chrome, Firefox, Safari, Edge). Uses `CSS.escape()` for safe selectors.
+Browser only. Works in modern browsers (Chrome, Firefox, Safari, Edge). Uses `CSS.escape()`, `Object.hasOwn()` and `??`.
 
-## Module Usage
+## Usage
 
-```javascript
-// ES Modules
-import FormPopulator from 'form-populator';
+Loaded with a `<script>` tag, `FormPopulator` is a global. It is not an ES module and is not intended for Node/SSR.
 
-// CommonJS
-const FormPopulator = require('form-populator');
-```
 ## AI Assistant Integration
 
 This library is optimized for use with AI coding assistants. We provide specific context files to help LLMs understand how to integrate `FormPopulator` correctly:

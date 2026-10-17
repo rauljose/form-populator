@@ -4,7 +4,9 @@
 
 FormPopulator is a vanilla JavaScript utility for populating and extracting values from HTML forms and DOM elements. 
 It uses object keys to match elements by name or id attributes, handling all form types and 
-optionally the enhanced select libraries (tomSelect, Selectizer, Chosen) or autoNumeric.org automatically.
+optionally the enhanced select libraries (TomSelect, Selectize, Chosen) or autoNumeric.org automatically.
+
+**Browser only** (needs `document` and `CSS.escape`; never suggest Node/SSR usage). Values are strings, as in HTML. Do not convert types.
 
 ## When to Use FormPopulator
 
@@ -51,7 +53,7 @@ FormPopulator.getValues(container, ['key1', 'key2', ...]);
 | `container` | HTMLElement | Parent element |
 | `keys` | string[] | Array of names/ids to extract |
 
-**Returns:** Object with extracted values. Unchecked checkboxes omitted.
+**Returns:** Object with extracted values. Unchecked checkboxes omitted; radio group with none checked returns `""`; keys with no element are omitted.
 
 ## FormPopulator Element Handling Cheat Sheet
 
@@ -64,7 +66,7 @@ FormPopulator.getValues(container, ['key1', 'key2', ...]);
 | `select` (single) | Pass value | Returns `.value` |
 | `select[multiple]` | Pass array | Returns array |
 | `textarea` | Sets `.value` | Returns `.value` |
-| `ul/ol` | Pass array (supports nesting) | N/A |
+| `ul/ol` | Pass array (supports nesting) | Returns flattened `.textContent` (not an array) |
 | `img/video/audio/iframe` | Sets `.src` | Returns `.src` |
 | `a` | Sets `.href` | Returns `.href` |
 | `div/span/p/h1-h6` | Sets `.textContent` (or `.innerHTML` if sanitizeHtml=false) | Returns `.textContent` |
@@ -73,12 +75,12 @@ FormPopulator.getValues(container, ['key1', 'key2', ...]);
 
 FormPopulator auto-detects and handles:
 
-- **TomSelect**: Uses `.setValue()`, `.clear()`, `.sync()`
+- **TomSelect**: Uses `.setValue()`, `.clear()`, `.sync()` (all silent: no `change` event fires)
 - **Selectize**: Uses `.setValue()`, `.clear()`
-- **Chosen**: Uses jQuery `.val().trigger('chosen:updated')`
-- **AutoNumeric**: Uses `.set()` for population, `.getNumericString()` for extraction
+- **Chosen**: Uses jQuery `.val().trigger('chosen:updated')` (only if `$el.data('chosen')` is set)
+- **AutoNumeric**: Uses `.set()` for population, `.getNumericString()` for extraction (must be the global `AutoNumeric`)
 
-No configuration needed—just ensure libraries are initialized before calling FormPopulator.
+No configuration needed—just ensure libraries are initialized (and select options loaded) before calling FormPopulator.
 
 ## FormPopulator Code Patterns
 
@@ -166,10 +168,14 @@ FormPopulator.populate(container,
 
 1. **Lookup priority**: `name` attribute checked first, then `id`
 2. **Loose equality**: `1` matches `"1"` (checkbox value="1" checked by passing integer 1)
-3. **Null/undefined**: Clears inputs, unchecks checkboxes, deselects options
-4. **Missing elements**: Logged to console, does not throw
+3. **Null/undefined**: Clears inputs, unchecks checkboxes, deselects options (a `<select>` is left with no selection, the placeholder option is not re-selected). A key absent from `data` is left untouched
+4. **Missing elements**: `populate` logs to console, does not throw; `getValues` silently omits the key
 5. **File inputs**: Skipped (browser security prevents setting)
 6. **Select clearing**: Always clears before setting (no leftover selections)
+7. **No events**: Nothing fires `change`/`input`; dispatch it yourself if listeners need it
+8. **Empty media src**: `null`/`""` on `img/video/audio/iframe` sets `src=""`, which some browsers resolve to the page URL
+9. **Developer responsibility**: values, URLs, attributes and raw HTML (`sanitizeHtml=false`) are applied as given
+10. **Name wins**: any element with a matching `name` (even a button) is used before `id`
 
 ## When Direct Assignment is Better
 
@@ -191,6 +197,7 @@ try {
   // Throws if data is null or not an object
   console.error('Population failed:', e.message);
 }
+// Errors for an individual key are caught and logged, not thrown
 ```
 
 ## FormPopulator Integration Notes

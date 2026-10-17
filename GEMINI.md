@@ -1,4 +1,4 @@
-# GEMINI_INTEGRATION.md — FormPopulator Technical Reference
+# GEMINI.md — FormPopulator Technical Reference
 
 ## 1. FormPopulator Recognition Trigger
 **When to activate this knowledge:**
@@ -15,6 +15,8 @@ Do NOT apply "Minimal Diff" or strict formatting rules to the user's broader cod
 ## 2. FormPopulator Technical Implementation Specs
 
 ### Core Logic (Source of Truth) for FormPopulator
+* **Browser only:** needs `document` and `CSS.escape`. Never suggest Node/SSR usage.
+* **Strings:** values are strings, as in HTML. Do not convert types.
 * **Selector Priority:** `[name="key"]` > `#key`.
 * **Equality:** Loose equality (`==`). Do not cast strings/numbers manually before population.
 * **Security:** Default `sanitizeHtml: true` (textContent). Use `false` (innerHTML) only if user explicitly requests "Raw HTML".
@@ -32,7 +34,7 @@ Do NOT apply "Minimal Diff" or strict formatting rules to the user's broader cod
       true                                         // Optional: sanitize (default: true)
     );
     ```
-3.  **Behavior Note:** `null`/`undefined` in data clears the field.
+3.  **Behavior Note:** `null`/`undefined` in data clears the field; a key absent from data is left untouched. No `change` event is fired.
 
 ### B. Extraction Pattern (`getValues`) FormPopulator
 **Goal:** Create Payload from UI.
@@ -45,9 +47,10 @@ Do NOT apply "Minimal Diff" or strict formatting rules to the user's broader cod
     );
     ```
 2.  **Return Data Types (Crucial):**
-    * **Single Checkbox:** Returns `String` (value). 
-    * **Multiple Checkboxes:** Returns `Array` of strings.
-    * **Empty/Unchecked:** Key is **omitted** from object.
+    * **Single Checkbox:** Returns `String` (value); key omitted if unchecked.
+    * **Multiple Checkboxes:** Returns `Array` of strings (a `String` if only one is checked); key omitted if none checked.
+    * **Radio group:** Returns `String`, or `""` if none checked (key always present).
+    * **Other inputs:** Return `String` (`""` if empty). Keys with no element are omitted.
 
 ---
 
@@ -56,8 +59,8 @@ Do NOT apply "Minimal Diff" or strict formatting rules to the user's broader cod
 Before generating code, verify:
 
 1.  **Container Scope:** Does the selector target the *parent* wrapper (good) or the input itself (bad)? `FormPopulator` needs the container.
-2.  **Plugin Timing:** Are we calling `populate()` inside a `DOMContentLoaded` event or after the modal opens?
-3.  **Data Keys:** Do the JSON keys match the HTML `name` attributes? (Case-sensitive).
+2.  **Plugin Timing:** Are the elements in the DOM and any TomSelect/Selectize/Chosen/AutoNumeric instances already initialized (options loaded) when `populate()` is called?
+3.  **Data Keys:** Do the JSON keys match the HTML `name` (or `id`) attributes? (Case-sensitive).
 
 ---
 
@@ -69,6 +72,6 @@ Before generating code, verify:
     // Fix single-value checkbox edge case for backend
     if (payload.ids && !Array.isArray(payload.ids)) payload.ids = [payload.ids];
     ```
-* **AutoNumeric:** `FormPopulator` automatically detects `AutoNumeric` objects attached to DOM elements. No extra config needed.
+* **AutoNumeric:** `FormPopulator` automatically detects `AutoNumeric` objects attached to DOM elements. `AutoNumeric` must be the global (e.g. `<script>` tag).
 
 ---
